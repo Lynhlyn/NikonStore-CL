@@ -1,0 +1,458 @@
+"use client"
+
+import { ChevronDown, LogOut, Menu, ShoppingCart as ShoppingCartIcon, User, X } from 'lucide-react'
+import Image from "next/image"
+import Link from "next/link"
+import { useEffect, useRef, useState } from "react"
+import { cn } from "@/lib/utils"
+
+interface NavItem {
+    label: string
+    href: string
+    hasChildren?: boolean
+    children?: NavItem[]
+}
+
+export function Header() {
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+    const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
+    const headerRef = useRef<HTMLDivElement>(null)
+    const [isCartOpen, setIsCartOpen] = useState(false)
+    const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const categoryHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+    // Check authentication
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken') : null
+
+    // Static navigation items for now
+    const navItems: NavItem[] = [
+        { label: "Trang chủ", href: "/" },
+        {
+            label: "Sản phẩm",
+            href: "/product",
+            hasChildren: true,
+            children: [
+                { label: "Máy ảnh DSLR", href: "/product?category=dslr" },
+                { label: "Máy ảnh Mirrorless", href: "/product?category=mirrorless" },
+                { label: "Ống kính", href: "/product?category=lens" },
+                { label: "Phụ kiện", href: "/product?category=accessories" },
+            ],
+        },
+        { label: "Khuyến mãi", href: "/vouchers" },
+        { label: "Về chúng tôi", href: "/about" },
+        { label: "Hỗ trợ", href: "/faq" },
+        ...(!token ? [{ label: "Tra cứu đơn hàng", href: "/order/track" }] : []),
+    ]
+
+    useEffect(() => {
+        const checkIfMobile = () => {
+            setIsMobile(window.innerWidth < 1024)
+        }
+
+        checkIfMobile()
+        window.addEventListener("resize", checkIfMobile)
+
+        return () => {
+            window.removeEventListener("resize", checkIfMobile)
+        }
+    }, [])
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+                setActiveDropdown(null)
+                setIsUserDropdownOpen(false)
+                setHoveredCategory(null)
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside)
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current)
+            }
+            if (categoryHoverTimeoutRef.current) {
+                clearTimeout(categoryHoverTimeoutRef.current)
+            }
+        }
+    }, [])
+
+    const toggleMenu = () => {
+        setIsMenuOpen(!isMenuOpen)
+    }
+    const toggleCart = () => {
+        setIsCartOpen(!isCartOpen)
+    }
+
+    const handleMouseEnter = (label: string) => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current)
+            hoverTimeoutRef.current = null
+        }
+        setActiveDropdown(label)
+    }
+
+    const handleMouseLeave = () => {
+        hoverTimeoutRef.current = setTimeout(() => {
+            setActiveDropdown(null)
+        }, 200)
+    }
+
+    const handleCategoryMouseEnter = (categoryLabel: string) => {
+        if (categoryHoverTimeoutRef.current) {
+            clearTimeout(categoryHoverTimeoutRef.current)
+            categoryHoverTimeoutRef.current = null
+        }
+        setHoveredCategory(categoryLabel)
+    }
+
+    const handleCategoryMouseLeave = () => {
+        categoryHoverTimeoutRef.current = setTimeout(() => {
+            setHoveredCategory(null)
+        }, 150)
+    }
+
+    const toggleDropdown = (label: string) => {
+        setActiveDropdown(activeDropdown === label ? null : label)
+    }
+
+    const handleLogout = async () => {
+        const clearAllTokens = () => {
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
+            sessionStorage.removeItem('accessToken')
+            sessionStorage.removeItem('refreshToken')
+        }
+
+        clearAllTokens()
+        window.location.href = '/login'
+    }
+
+    const toggleUserDropdown = () => {
+        setIsUserDropdownOpen(!isUserDropdownOpen)
+    }
+
+    // Component để render menu đệ quy cho menu 2 tầng (Desktop)
+    const renderDropdownMenu = (items: NavItem[], level: number = 0) => {
+        return items.map((item) => (
+            <div key={item.label} className="relative">
+                {item.hasChildren && item.children && item.children.length > 0 ? (
+                    <div
+                        className="group"
+                        onMouseEnter={() => handleCategoryMouseEnter(item.label)}
+                        onMouseLeave={handleCategoryMouseLeave}
+                    >
+                        <div className="flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 hover:text-[#FF6B00] transition-colors cursor-pointer">
+                            <span>{item.label}</span>
+                            <ChevronDown className="h-3 w-3 ml-1" />
+                        </div>
+                        {hoveredCategory === item.label && (
+                            <div className="absolute left-full top-0 w-56 bg-white border rounded shadow-lg z-20 animate-in slide-in-from-left-2 duration-200">
+                                {renderDropdownMenu(item.children, level + 1)}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <Link
+                        href={item.href}
+                        className="block px-4 py-2 text-sm hover:bg-gray-100 hover:text-[#FF6B00] transition-colors"
+                    >
+                        {item.label}
+                    </Link>
+                )}
+            </div>
+        ))
+    }
+
+    // Component để render menu đệ quy cho mobile
+    const renderMobileMenu = (items: NavItem[], level: number = 0) => {
+        return items.map((item) => (
+            <div key={item.label} className={cn("py-1", level > 0 && "ml-6")}>
+                {item.hasChildren && item.children && item.children.length > 0 ? (
+                    <div>
+                        <button
+                            className="flex items-center justify-between w-full text-sm font-medium py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
+                            onClick={() => toggleDropdown(item.label)}
+                            aria-expanded={activeDropdown === item.label}
+                        >
+                            <span className="text-left">{item.label}</span>
+                            <ChevronDown
+                                className={cn(
+                                    "h-4 w-4 transition-transform text-gray-500",
+                                    activeDropdown === item.label ? "rotate-180" : "",
+                                )}
+                            />
+                        </button>
+                        {activeDropdown === item.label && (
+                            <div className="mt-1 space-y-1 bg-gray-50 rounded-lg p-2">
+                                {renderMobileMenu(item.children, level + 1)}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <Link
+                        href={item.href}
+                        className="block py-2 px-3 text-sm hover:text-[#FF6B00] hover:bg-gray-50 rounded-lg transition-colors"
+                        onClick={toggleMenu}
+                    >
+                        {item.label}
+                    </Link>
+                )}
+            </div>
+        ))
+    }
+
+    return (
+        <header ref={headerRef} className="sticky top-0 z-50 w-full bg-white shadow-md border-b-2 border-[#FF6B00]/20">
+            {/* Top Section */}
+            <div className="bg-gradient-to-r from-[#FF6B00] to-[#FF8C00]">
+                <div className="container mx-auto px-4">
+                    <div className="flex items-center justify-between h-14">
+                        {/* Mobile Menu Button */}
+                        <button className="lg:hidden flex items-center text-white" onClick={toggleMenu} aria-label="Toggle menu">
+                            <Menu className="h-6 w-6" />
+                        </button>
+
+                        {/* Logo */}
+                        <div className="flex items-center">
+                            <Link href="/" className="flex items-center">
+                                <div className="text-xl font-bold text-white">
+                                    NIKON STORE
+                                </div>
+                            </Link>
+                        </div>
+
+                        {/* Desktop Search */}
+                        <div className="hidden lg:flex items-center flex-1 max-w-md mx-6">
+                            <div className="relative w-full">
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm sản phẩm..."
+                                    className="w-full px-4 py-2 pl-10 rounded-lg bg-white/90 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white"
+                                />
+                                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Login and Cart */}
+                        <div className="flex items-center space-x-3">
+                            {!token ? (
+                                <Link href="/login" className="text-sm font-semibold text-white hover:text-gray-100 transition-colors px-3 py-1.5 rounded">
+                                    Đăng nhập
+                                </Link>
+                            ) : (
+                                <div className="relative">
+                                    <button
+                                        onClick={toggleUserDropdown}
+                                        className="flex items-center space-x-2 text-sm font-semibold text-white hover:text-gray-100 transition-colors"
+                                    >
+                                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border border-white/30">
+                                            <User className="h-5 w-5 text-white" />
+                                        </div>
+                                        <span className="hidden md:block">Tài khoản</span>
+                                        <ChevronDown className="h-4 w-4" />
+                                    </button>
+                                    {isUserDropdownOpen && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border border-gray-200 z-50">
+                                            <div className="px-4 py-3 border-b border-gray-100">
+                                                <p className="text-sm font-medium text-gray-900">Tài khoản</p>
+                                                <p className="text-xs text-gray-500">user@example.com</p>
+                                            </div>
+                                            <Link
+                                                href="/profile"
+                                                className="block px-4 py-2 text-sm hover:bg-gray-100 hover:text-[#FF6B00] transition-colors"
+                                                onClick={() => setIsUserDropdownOpen(false)}
+                                            >
+                                                <div className="flex items-center space-x-2">
+                                                    <User className="h-4 w-4" />
+                                                    <span>Thông tin cá nhân</span>
+                                                </div>
+                                            </Link>
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center space-x-2"
+                                            >
+                                                <LogOut className="h-4 w-4" />
+                                                <span>Đăng xuất</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            <div className="relative">
+                                <button
+                                    onClick={toggleCart}
+                                    className="flex items-center text-white hover:text-gray-100 transition-colors relative"
+                                >
+                                    <ShoppingCartIcon className="h-6 w-6" />
+                                    <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 bg-white text-[#FF6B00] text-xs font-bold rounded-full border-2 border-[#FF6B00]">
+                                        0
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile Search Bar */}
+            <div className="lg:hidden border-b bg-gray-50">
+                <div className="container mx-auto px-4 py-2">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm sản phẩm..."
+                            className="w-full px-4 py-2 pl-10 rounded-lg bg-white border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                        />
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Section - Navigation (Desktop) */}
+            <div className="hidden lg:block bg-white">
+                <div className="container mx-auto px-4">
+                    <nav className="flex items-center justify-center h-14">
+                        <div className="flex items-center space-x-8">
+                            {navItems.map((item, index) => (
+                                <div
+                                    key={item.label}
+                                    className="relative"
+                                >
+                                    {item.hasChildren ? (
+                                        <div
+                                            className="group"
+                                            onMouseEnter={() => handleMouseEnter(item.label)}
+                                            onMouseLeave={handleMouseLeave}
+                                        >
+                                            <Link
+                                                href={item.href}
+                                                className="flex items-center text-base font-semibold text-gray-700 hover:text-[#FF6B00] transition-colors duration-200"
+                                            >
+                                                {item.label}
+                                                <ChevronDown className={cn(
+                                                    "ml-1 h-4 w-4 transition-transform duration-200",
+                                                    activeDropdown === item.label ? "rotate-180" : ""
+                                                )} />
+                                            </Link>
+                                            {activeDropdown === item.label && (
+                                                <div className="absolute left-0 mt-2 w-56 bg-white border-2 border-[#FF6B00]/20 rounded-lg shadow-xl z-10">
+                                                    {renderDropdownMenu(item.children || [])}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <Link
+                                            href={item.href}
+                                            className="text-base font-semibold text-gray-700 hover:text-[#FF6B00] transition-colors duration-200"
+                                        >
+                                            {item.label}
+                                        </Link>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </nav>
+                </div>
+            </div>
+
+            {/* Mobile Menu */}
+            <div
+                className={cn(
+                    "fixed inset-0 bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden",
+                    isMenuOpen ? "translate-x-0" : "-translate-x-full",
+                )}
+            >
+                <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-[#FF6B00] to-[#FF8C00]">
+                    <div className="text-xl font-bold text-white">NIKON STORE</div>
+                    <button onClick={toggleMenu} aria-label="Close menu" className="text-white">
+                        <X className="h-6 w-6" />
+                    </button>
+                </div>
+                <div className="p-4 overflow-y-auto h-full">
+                    <div className="flex flex-col space-y-4">
+                        {navItems.map((item) => (
+                            <div key={item.label} className="py-2">
+                                {item.hasChildren ? (
+                                    <div>
+                                        <button
+                                            className="flex items-center justify-between w-full text-base font-semibold text-gray-800"
+                                            onClick={() => toggleDropdown(item.label)}
+                                            aria-expanded={activeDropdown === item.label}
+                                        >
+                                            {item.label}
+                                            <ChevronDown
+                                                className={cn(
+                                                    "h-4 w-4 transition-transform",
+                                                    activeDropdown === item.label ? "rotate-180" : "",
+                                                )}
+                                            />
+                                        </button>
+                                        {activeDropdown === item.label && (
+                                            <div className="mt-2 space-y-2">
+                                                {renderMobileMenu(item.children || [])}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Link
+                                        href={item.href}
+                                        className="block text-base font-semibold text-gray-800 hover:text-[#FF6B00] transition-colors"
+                                        onClick={toggleMenu}
+                                    >
+                                        {item.label}
+                                    </Link>
+                                )}
+                            </div>
+                        ))}
+                        <div className="pt-4 mt-4 border-t">
+                            {token ? (
+                                <div className="space-y-2">
+                                    <Link
+                                        href="/profile"
+                                        className="flex items-center space-x-2 py-2 text-base font-semibold hover:text-[#FF6B00]"
+                                        onClick={toggleMenu}
+                                    >
+                                        <User className="h-5 w-5" />
+                                        <span>Thông tin cá nhân</span>
+                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            handleLogout()
+                                            toggleMenu()
+                                        }}
+                                        className="flex items-center space-x-2 py-2 text-base font-semibold text-red-600 hover:text-red-700"
+                                    >
+                                        <LogOut className="h-5 w-5" />
+                                        <span>Đăng xuất</span>
+                                    </button>
+                                </div>
+                            ) : (
+                                <Link
+                                    href="/login"
+                                    className="block py-2 text-base font-semibold hover:text-[#FF6B00]"
+                                    onClick={toggleMenu}
+                                >
+                                    Đăng nhập
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+    )
+}
+
