@@ -36,9 +36,9 @@ export function PasswordInput({
         placeholder={placeholder}
         onChange={onChange}
         className={cn(
-          "w-full px-4 py-3 pr-12 rounded-lg border border-gray-300 bg-white",
+          "w-full px-3 py-2.5 pr-10 rounded-lg border border-gray-300 bg-white",
           "focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent",
-          "transition-all duration-200",
+          "transition-all duration-200 text-sm",
           className
         )}
         required={required}

@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useLoginMutation } from "@/lib/service/modules/authService"
 import { PasswordInput } from "@/components/auth/PasswordInput"
 import { toast } from "sonner"
+import { tokenManager } from "@/common/utils/tokenManager"
 
-export default function LoginPage() {
+function LoginForm() {
   const [login, setLogin] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
@@ -25,14 +26,7 @@ export default function LoginPage() {
     try {
       const response = await loginMutation({ login, password }).unwrap()
 
-      // Store tokens based on remember me preference
-      if (rememberMe) {
-        localStorage.setItem("accessToken", response.accessToken)
-        localStorage.setItem("refreshToken", response.refreshToken)
-      } else {
-        sessionStorage.setItem("accessToken", response.accessToken)
-        sessionStorage.setItem("refreshToken", response.refreshToken)
-      }
+      tokenManager.setTokens(response.accessToken, response.refreshToken, rememberMe)
 
       toast.success("Đăng nhập thành công!", { id: "login-success" })
       await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -49,8 +43,13 @@ export default function LoginPage() {
         router.replace("/")
       }
     } catch (err: any) {
-      // Error is already handled by transformErrorResponse
-      console.error("Login error:", err)
+      if (err?.data?.error) {
+        toast.error(err.data.error, { id: "login-error" })
+      } else if (err?.message) {
+        toast.error(err.message, { id: "login-error" })
+      } else {
+        toast.error("Đăng nhập thất bại. Vui lòng thử lại!", { id: "login-error" })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -185,6 +184,18 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#FF6B00] via-[#FF8C00] to-[#FFA500]">
+        <div className="text-white">Đang tải...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
 
