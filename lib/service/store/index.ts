@@ -13,9 +13,11 @@ import {
 import { appSlice } from "../../features/appSlice"
 import { apiSlice } from "../api"
 import storage from "./localStorage"
+import cartReducer from "../modules/cartService"
 
 const rootReducer = combineReducers({
   app: appSlice.reducer,
+  cart: cartReducer,
   [apiSlice.reducerPath]: apiSlice.reducer,
 })
 

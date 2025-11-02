@@ -3,9 +3,12 @@
 import { ChevronDown, LogOut, Menu, ShoppingCart as ShoppingCartIcon, User, X } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { useFetchCurrentCustomerQuery } from "@/lib/service/modules/customerService"
+import { useSelector } from "react-redux"
+import { RootState } from "@/lib/service/store"
+import CartDropdown from "@/common/components/cart/CartDropdown"
 
 interface NavItem {
     label: string
@@ -20,7 +23,6 @@ export function Header() {
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
     const headerRef = useRef<HTMLDivElement>(null)
-    const [isCartOpen, setIsCartOpen] = useState(false)
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const categoryHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -31,6 +33,11 @@ export function Header() {
         skip: !token,
         refetchOnMountOrArgChange: true
     })
+
+    const cartData = useSelector((state: RootState) => (state as any).cart?.data)
+    const cartCount = useMemo(() => {
+        return cartData?.items?.length || 0
+    }, [cartData?.items?.length])
 
     // Static navigation items for now
     const navItems: NavItem[] = [
@@ -88,9 +95,6 @@ export function Header() {
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen)
-    }
-    const toggleCart = () => {
-        setIsCartOpen(!isCartOpen)
     }
 
     const handleMouseEnter = (label: string) => {
@@ -306,17 +310,18 @@ export function Header() {
                                     )}
                                 </div>
                             )}
-                            <div className="relative">
+                            <CartDropdown>
                                 <button
-                                    onClick={toggleCart}
                                     className="flex items-center text-white hover:text-gray-100 transition-colors relative"
                                 >
                                     <ShoppingCartIcon className="h-6 w-6" />
-                                    <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 bg-white text-[#FF6B00] text-xs font-bold rounded-full border-2 border-[#FF6B00]">
-                                        0
-                                    </span>
+                                    {cartCount > 0 && (
+                                        <span className="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-5 bg-white text-[#FF6B00] text-xs font-bold rounded-full border-2 border-[#FF6B00] px-1">
+                                            {cartCount > 99 ? '99+' : cartCount}
+                                        </span>
+                                    )}
                                 </button>
-                            </div>
+                            </CartDropdown>
                         </div>
                     </div>
                 </div>
