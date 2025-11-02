@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { useFetchCurrentCustomerQuery } from "@/lib/service/modules/customerService"
 
 interface NavItem {
     label: string
@@ -24,8 +25,12 @@ export function Header() {
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const categoryHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-    // Check authentication
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken') : null
+
+    const { data: userData } = useFetchCurrentCustomerQuery(undefined, {
+        skip: !token,
+        refetchOnMountOrArgChange: true
+    })
 
     // Static navigation items for now
     const navItems: NavItem[] = [
@@ -255,16 +260,30 @@ export function Header() {
                                         className="flex items-center space-x-2 text-sm font-semibold text-white hover:text-gray-100 transition-colors"
                                     >
                                         <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border border-white/30">
-                                            <User className="h-5 w-5 text-white" />
+                                            {userData?.data?.urlImage ? (
+                                                <img
+                                                    src={userData.data.urlImage}
+                                                    alt={userData.data.fullName || 'User'}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <User className="h-5 w-5 text-white" />
+                                            )}
                                         </div>
-                                        <span className="hidden md:block">Tài khoản</span>
+                                        <span className="hidden md:block">
+                                            {userData?.data?.fullName || userData?.data?.username || 'Tài khoản'}
+                                        </span>
                                         <ChevronDown className="h-4 w-4" />
                                     </button>
                                     {isUserDropdownOpen && (
                                         <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border border-gray-200 z-50">
                                             <div className="px-4 py-3 border-b border-gray-100">
-                                                <p className="text-sm font-medium text-gray-900">Tài khoản</p>
-                                                <p className="text-xs text-gray-500">user@example.com</p>
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {userData?.data?.fullName || userData?.data?.username || 'Tài khoản'}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {userData?.data?.email}
+                                                </p>
                                             </div>
                                             <Link
                                                 href="/profile"
@@ -420,6 +439,27 @@ export function Header() {
                         <div className="pt-4 mt-4 border-t">
                             {token ? (
                                 <div className="space-y-2">
+                                    <div className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                            {userData?.data?.urlImage ? (
+                                                <img
+                                                    src={userData.data.urlImage}
+                                                    alt={userData.data.fullName || 'User'}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <User className="h-6 w-6 text-gray-500" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {userData?.data?.fullName || userData?.data?.username || 'Tài khoản'}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                {userData?.data?.email}
+                                            </p>
+                                        </div>
+                                    </div>
                                     <Link
                                         href="/profile"
                                         className="flex items-center space-x-2 py-2 text-base font-semibold hover:text-[#FF6B00]"
