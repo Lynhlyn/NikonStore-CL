@@ -18,37 +18,31 @@ export function AuthGuard({ children }: AuthGuardProps) {
     ? tokenManager.getAccessToken()
     : null
 
-  const isPublicRoute = pathname === "/login" || pathname === "/register" || pathname === "/"
+  const isUserRoute = pathname?.startsWith('/profile') || pathname?.startsWith('/address') || pathname?.startsWith('/orders')
 
   const { data, error, isLoading } = useFetchCurrentCustomerQuery(undefined, {
-    skip: !token || isPublicRoute,
+    skip: !token || !isUserRoute,
     refetchOnMountOrArgChange: true,
   })
 
   useEffect(() => {
-    if (!token) {
-      if (!isPublicRoute && pathname !== "/") {
-        setShouldRedirect(true)
-      }
+    if (!token && isUserRoute) {
+      const returnUrl = encodeURIComponent(pathname || '/')
+      router.replace(`/login?returnUrl=${returnUrl}`)
       return
     }
 
-    if (error) {
+    if (error && isUserRoute) {
       const errorStatus = (error as any)?.status
       if (errorStatus === 401 || errorStatus === 403) {
         tokenManager.clearTokens()
-        setShouldRedirect(true)
+        const returnUrl = encodeURIComponent(pathname || '/')
+        router.replace(`/login?returnUrl=${returnUrl}`)
       }
     }
-  }, [error, token, router, isPublicRoute, pathname])
+  }, [error, token, router, isUserRoute, pathname])
 
-  useEffect(() => {
-    if (shouldRedirect && !isPublicRoute) {
-      router.push("/login")
-    }
-  }, [shouldRedirect, router, isPublicRoute])
-
-  if (!token && !isPublicRoute && pathname !== "/") {
+  if (!token && isUserRoute) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-600">Đang kiểm tra đăng nhập...</div>
@@ -56,7 +50,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     )
   }
 
-  if (token && isLoading) {
+  if (token && isLoading && isUserRoute) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-600">Đang tải...</div>
@@ -66,4 +60,5 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   return <>{children}</>
 }
+
 

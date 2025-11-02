@@ -31,7 +31,7 @@ const customerApi = apiSlice.injectEndpoints({
         }
 
         return {
-          url: `${customer}/${id}`,
+          url: `${customer}/${id}/profile`,
           method: 'PUT',
           body: formData,
         }
@@ -59,7 +59,19 @@ const customerApi = apiSlice.injectEndpoints({
         return error;
       },
       invalidatesTags: ['Customer'],
-
+    }),
+    changePassword: build.mutation<
+      ResponseStatus,
+      { id: number; currentPassword: string; newPassword: string; confirmPassword: string }
+    >({
+      query: ({ id, currentPassword, newPassword, confirmPassword }) => ({
+        url: `${customer}/${id}/change-password`,
+        method: 'POST',
+        body: { currentPassword, newPassword, confirmPassword },
+      }),
+      transformErrorResponse: (error: any) => {
+        return error;
+      },
     }),
   }),
 })
@@ -69,5 +81,6 @@ export const {
   useFetchCustomerByIdQuery,
   useUpdateCustomerMutation,
   useDeleteCustomerAccountMutation,
+  useChangePasswordMutation,
 } = customerApi;
 
