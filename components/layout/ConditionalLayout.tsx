@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { Header } from './Header'
 import { Footer } from './Footer'
+import BottomBanner from '@/components/banner/BottomBanner'
 
 interface ConditionalLayoutProps {
   children: React.ReactNode
@@ -25,6 +26,9 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
       <main className={`flex-1 relative ${isUserRoute ? 'lg:pt-24' : 'lg:pt-32'}`}>
         {children}
       </main>
+      
+      {/* Bottom Banner Section - Position 2 (Bottom) - Before Footer */}
+      {!isUserRoute && <BottomBanner />}
       
       {/* Footer - Hide completely for user routes */}
       {!isUserRoute && (
