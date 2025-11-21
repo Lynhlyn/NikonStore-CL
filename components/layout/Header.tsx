@@ -1,14 +1,49 @@
 "use client"
 
-import { ChevronDown, LogOut, Menu, ShoppingCart as ShoppingCartIcon, User, X } from 'lucide-react'
+import { ChevronDown, LogOut, Menu, ShoppingCart as ShoppingCartIcon, User, X, Search } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useFetchCurrentCustomerQuery } from "@/lib/service/modules/customerService"
+import { useFetchAllCategoriesQuery } from "@/lib/service/modules/categoryService"
 import { useSelector } from "react-redux"
 import { RootState } from "@/lib/service/store"
 import CartDropdown from "@/common/components/cart/CartDropdown"
+
+function SearchBar() {
+    const router = useRouter()
+    const [searchTerm, setSearchTerm] = useState("")
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (searchTerm.trim()) {
+            router.push(`/products?keyword=${encodeURIComponent(searchTerm.trim())}`)
+        }
+    }
+
+    return (
+        <form onSubmit={handleSearch} className="relative w-full">
+            <input
+                type="text"
+                placeholder="Tìm kiếm sản phẩm..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 pl-10 pr-10 rounded-lg bg-white border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+            />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                <Search className="w-5 h-5 text-gray-400" />
+            </div>
+            <button
+                type="submit"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#FF6B00] hover:text-[#FF8C00] transition-colors"
+            >
+                <Search className="w-5 h-5" />
+            </button>
+        </form>
+    )
+}
 
 interface NavItem {
     label: string
@@ -39,25 +74,31 @@ export function Header() {
         return cartData?.items?.length || 0
     }, [cartData?.items?.length])
 
-    // Static navigation items for now
-    const navItems: NavItem[] = [
-        { label: "Trang chủ", href: "/" },
-        {
-            label: "Sản phẩm",
-            href: "/product",
-            hasChildren: true,
-            children: [
-                { label: "Máy ảnh DSLR", href: "/product?category=dslr" },
-                { label: "Máy ảnh Mirrorless", href: "/product?category=mirrorless" },
-                { label: "Ống kính", href: "/product?category=lens" },
-                { label: "Phụ kiện", href: "/product?category=accessories" },
-            ],
-        },
-        { label: "Khuyến mãi", href: "/vouchers" },
-        { label: "Về chúng tôi", href: "/about" },
-        { label: "Hỗ trợ", href: "/faq" },
-        ...(!token ? [{ label: "Tra cứu đơn hàng", href: "/order/track" }] : []),
-    ]
+    const { data: categoriesData } = useFetchAllCategoriesQuery()
+
+    // Build navigation items with dynamic categories
+    const navItems: NavItem[] = useMemo(() => {
+        const categoryChildren = categoriesData?.data
+            ? categoriesData.data.map((category) => ({
+                  label: category.name,
+                  href: `/products?categoryId=${category.id}`,
+              }))
+            : []
+
+        return [
+            { label: "Trang chủ", href: "/" },
+            {
+                label: "Sản phẩm",
+                href: "/products",
+                hasChildren: categoryChildren.length > 0,
+                children: categoryChildren,
+            },
+            { label: "Khuyến mãi", href: "/vouchers" },
+            { label: "Về chúng tôi", href: "/about" },
+            { label: "Hỗ trợ", href: "/faq" },
+            ...(!token ? [{ label: "Tra cứu đơn hàng", href: "/order/track" }] : []),
+        ]
+    }, [categoriesData, token])
 
     useEffect(() => {
         const checkIfMobile = () => {
@@ -237,18 +278,7 @@ export function Header() {
 
                         {/* Desktop Search */}
                         <div className="hidden lg:flex items-center flex-1 max-w-md mx-6">
-                            <div className="relative w-full">
-                                <input
-                                    type="text"
-                                    placeholder="Tìm kiếm sản phẩm..."
-                                    className="w-full px-4 py-2 pl-10 rounded-lg bg-white/90 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white"
-                                />
-                                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </div>
-                            </div>
+                            <SearchBar />
                         </div>
 
                         {/* Login and Cart */}
@@ -330,18 +360,7 @@ export function Header() {
             {/* Mobile Search Bar */}
             <div className="lg:hidden border-b bg-gray-50">
                 <div className="container mx-auto px-4 py-2">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm sản phẩm..."
-                            className="w-full px-4 py-2 pl-10 rounded-lg bg-white border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
-                        />
-                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                    </div>
+                    <SearchBar />
                 </div>
             </div>
 

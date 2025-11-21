@@ -1,21 +1,27 @@
+"use client"
+
 import HomeBanner from "@/components/banner/HomeBanner"
+import ProductList from "@/components/product/ProductList"
 
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col">
-      {/* Home Banner Section - Position 0 (Top) */}
       <HomeBanner position={0} />
       
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-          <h1 className="text-4xl font-bold text-center mb-8">
-            Welcome to Nikon Store
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Sản phẩm nổi bật
           </h1>
-          <p className="text-center text-muted-foreground">
-            Your trusted destination for Nikon products
+          <p className="text-gray-600">
+            Khám phá bộ sưu tập sản phẩm chất lượng cao
           </p>
         </div>
+        
+        <ProductList 
+          query={{ size: 12 }}
+          columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
+        />
       </div>
     </main>
   );
