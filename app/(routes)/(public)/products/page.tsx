@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Search, X, Filter, SlidersHorizontal as Sliders } from "lucide-react"
+import { X, Filter, SlidersHorizontal as Sliders } from "lucide-react"
 import ProductList from "@/components/product/ProductList"
 import { useFetchProductsQuery } from "@/lib/service/modules/productService"
 import { useFetchAllTagsQuery } from "@/lib/service/modules/tagService"
@@ -43,10 +43,21 @@ export default function ProductsPage() {
     filters.maxPrice || 100000000,
   ])
 
-  const { data: productsData, isLoading } = useFetchProductsQuery({
+  const { data: productsData } = useFetchProductsQuery({
     page,
     size: 12,
-    ...filters,
+    keyword: filters.keyword || undefined,
+    brandIds: filters.brandIds.length > 0 ? filters.brandIds : undefined,
+    categoryIds: filters.categoryIds.length > 0 ? filters.categoryIds : undefined,
+    colorIds: filters.colorIds.length > 0 ? filters.colorIds : undefined,
+    materialIds: filters.materialIds.length > 0 ? filters.materialIds : undefined,
+    strapTypeIds: filters.strapTypeIds.length > 0 ? filters.strapTypeIds : undefined,
+    capacityIds: filters.capacityIds.length > 0 ? filters.capacityIds : undefined,
+    tagIds: filters.tagIds.length > 0 ? filters.tagIds : undefined,
+    featureIds: filters.featureIds.length > 0 ? filters.featureIds : undefined,
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+    hasPromotion: filters.hasPromotion,
   })
 
   const { data: tagsData } = useFetchAllTagsQuery()
@@ -82,7 +93,6 @@ export default function ProductsPage() {
 
   const updateFilters = (newFilters: Partial<typeof filters>) => {
     const updatedFilters = { ...filters, ...newFilters }
-    setFilters(updatedFilters)
     setPage(0)
     const params = new URLSearchParams()
     
@@ -154,10 +164,6 @@ export default function ProductsPage() {
     router.push("/products")
   }
 
-  const handleKeywordSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateFilters({ keyword: filters.keyword })
-  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + "₫"
@@ -226,19 +232,6 @@ export default function ProductsPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Tìm kiếm sản phẩm</h1>
           <p className="text-gray-600">Tìm kiếm và lọc sản phẩm theo nhu cầu của bạn</p>
         </div>
-
-        <form onSubmit={handleKeywordSubmit} className="mb-6">
-          <div className="relative max-w-2xl">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Nhập tên sản phẩm để tìm kiếm..."
-              value={filters.keyword}
-              onChange={(e) => setFilters((prev) => ({ ...prev, keyword: e.target.value }))}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent text-base"
-            />
-          </div>
-        </form>
 
         <div className="flex flex-col lg:flex-row gap-6">
           <aside
@@ -415,7 +408,14 @@ export default function ProductsPage() {
               </Button>
             </div>
 
-            <ProductList query={filters} columns={{ base: 1, sm: 2, md: 3, lg: 4 }} />
+            <ProductList 
+              query={{
+                ...filters,
+                page,
+                size: 12,
+              }} 
+              columns={{ base: 1, sm: 2, md: 3, lg: 4 }} 
+            />
 
             {productsData?.pagination && productsData.pagination.totalPages > 1 && (
               <div className="mt-8 flex justify-center items-center gap-2">
