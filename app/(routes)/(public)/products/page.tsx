@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { X, Filter, SlidersHorizontal as Sliders } from "lucide-react"
+import { X, Filter, SlidersHorizontal as Sliders, ChevronDown } from "lucide-react"
 import ProductList from "@/components/product/ProductList"
 import { useFetchProductsQuery } from "@/lib/service/modules/productService"
 import { useFetchAllTagsQuery } from "@/lib/service/modules/tagService"
@@ -23,6 +23,18 @@ export default function ProductsPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    category: true,
+    brand: true,
+    color: true,
+    price: true,
+    material: true,
+    strapType: true,
+    capacity: true,
+    tag: true,
+    feature: true,
+    promotion: true,
+  })
   const [filters, setFilters] = useState({
     keyword: searchParams.get("keyword") || "",
     brandIds: searchParams.getAll("brandIds").map(Number).filter(Boolean),
@@ -186,44 +198,81 @@ export default function ProductsPage() {
     )
   }, [filters])
 
+  const toggleSection = (sectionKey: string) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey],
+    }))
+  }
+
   const FilterSection = ({
     title,
     type,
     items,
     getLabel,
     getValue,
+    sectionKey,
   }: {
     title: string
     type: keyof typeof filters
     items: any[]
     getLabel: (item: any) => string
     getValue: (item: any) => number
-  }) => (
-    <div>
-      <Label className="text-sm font-semibold text-gray-900 mb-3 block">{title}</Label>
-      <div className="space-y-2 max-h-48 overflow-y-auto">
-        {items?.map((item) => {
-          const id = getValue(item)
-          const isChecked = (filters[type] as number[])?.includes(id) || false
-          return (
-            <div key={id} className="flex items-center space-x-2">
-              <Checkbox
-                id={`${type}-${id}`}
-                checked={isChecked}
-                onCheckedChange={() => toggleFilter(type, id)}
-              />
-              <Label
-                htmlFor={`${type}-${id}`}
-                className="text-sm text-gray-700 cursor-pointer flex-1"
-              >
-                {getLabel(item)}
-              </Label>
-            </div>
-          )
-        })}
+    sectionKey: string
+  }) => {
+    const isCollapsed = collapsedSections[sectionKey]
+    const activeCount = (filters[type] as number[])?.length || 0
+
+    return (
+      <div className="border-b border-gray-200 pb-4 last:border-b-0">
+        <button
+          type="button"
+          onClick={() => toggleSection(sectionKey)}
+          className="w-full flex items-center justify-between mb-3 hover:text-[#FF6B00] transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-semibold text-gray-900 cursor-pointer">
+              {title}
+            </Label>
+            {activeCount > 0 && (
+              <span className="bg-[#FF6B00] text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                {activeCount}
+              </span>
+            )}
+          </div>
+          <ChevronDown
+            className={cn(
+              "w-4 h-4 text-gray-500 transition-transform duration-200",
+              !isCollapsed && "transform rotate-180"
+            )}
+          />
+        </button>
+        {!isCollapsed && (
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {items?.map((item) => {
+              const id = getValue(item)
+              const isChecked = (filters[type] as number[])?.includes(id) || false
+              return (
+                <div key={id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`${type}-${id}`}
+                    checked={isChecked}
+                    onCheckedChange={() => toggleFilter(type, id)}
+                  />
+                  <Label
+                    htmlFor={`${type}-${id}`}
+                    className="text-sm text-gray-700 cursor-pointer flex-1"
+                  >
+                    {getLabel(item)}
+                  </Label>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -237,11 +286,11 @@ export default function ProductsPage() {
           <aside
             className={cn(
               "lg:w-80 shrink-0",
-              "fixed inset-y-0 left-0 z-10 w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:shadow-none",
+              "fixed inset-y-0 left-0 z-[60] w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out lg:relative lg:z-auto lg:translate-x-0 lg:shadow-none lg:bg-transparent",
               isFilterOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
             )}
           >
-            <div className="h-full overflow-y-auto p-6 border-r border-gray-200">
+            <div className="h-full overflow-y-auto p-6 border-r border-gray-200 lg:bg-white lg:rounded-lg lg:border lg:shadow-sm">
               <div className="flex items-center justify-between mb-6 lg:hidden">
                 <h2 className="text-xl font-bold text-gray-900">Bộ lọc</h2>
                 <button
@@ -264,13 +313,14 @@ export default function ProductsPage() {
                 )}
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <FilterSection
                   title="Danh mục"
                   type="categoryIds"
                   items={categoriesData?.data || []}
                   getLabel={(item) => item.name}
                   getValue={(item) => item.id}
+                  sectionKey="category"
                 />
 
                 <FilterSection
@@ -279,6 +329,7 @@ export default function ProductsPage() {
                   items={brandsData?.data || []}
                   getLabel={(item) => item.name}
                   getValue={(item) => item.id}
+                  sectionKey="brand"
                 />
 
                 <FilterSection
@@ -287,25 +338,42 @@ export default function ProductsPage() {
                   items={colorsData?.data || []}
                   getLabel={(item) => item.name}
                   getValue={(item) => item.id}
+                  sectionKey="color"
                 />
 
-                <div>
-                  <Label className="text-sm font-semibold text-gray-900 mb-3 block">Khoảng giá</Label>
-                  <div className="space-y-4">
-                    <Slider
-                      value={[priceRange[0], priceRange[1]]}
-                      onValueChange={handlePriceRangeChange}
-                      min={0}
-                      max={100000000}
-                      step={100000}
-                      className="w-full"
+                <div className="border-b border-gray-200 pb-4 last:border-b-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection("price")}
+                    className="w-full flex items-center justify-between mb-3 hover:text-[#FF6B00] transition-colors"
+                  >
+                    <Label className="text-sm font-semibold text-gray-900 cursor-pointer">
+                      Khoảng giá
+                    </Label>
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 text-gray-500 transition-transform duration-200",
+                        !collapsedSections.price && "transform rotate-180"
+                      )}
                     />
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-gray-700">{formatPrice(priceRange[0])}</span>
-                      <span className="text-gray-500">-</span>
-                      <span className="font-medium text-gray-700">{formatPrice(priceRange[1])}</span>
+                  </button>
+                  {!collapsedSections.price && (
+                    <div className="space-y-4">
+                      <Slider
+                        value={[priceRange[0], priceRange[1]]}
+                        onValueChange={handlePriceRangeChange}
+                        min={0}
+                        max={100000000}
+                        step={100000}
+                        className="w-full"
+                      />
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-gray-700">{formatPrice(priceRange[0])}</span>
+                        <span className="text-gray-500">-</span>
+                        <span className="font-medium text-gray-700">{formatPrice(priceRange[1])}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <FilterSection
@@ -314,6 +382,7 @@ export default function ProductsPage() {
                   items={materialsData?.data || []}
                   getLabel={(item) => item.name}
                   getValue={(item) => item.id}
+                  sectionKey="material"
                 />
 
                 <FilterSection
@@ -322,6 +391,7 @@ export default function ProductsPage() {
                   items={strapTypesData?.data || []}
                   getLabel={(item) => item.name}
                   getValue={(item) => item.id}
+                  sectionKey="strapType"
                 />
 
                 <FilterSection
@@ -330,6 +400,7 @@ export default function ProductsPage() {
                   items={capacitiesData?.data || []}
                   getLabel={(item) => item.name}
                   getValue={(item) => item.id}
+                  sectionKey="capacity"
                 />
 
                 <FilterSection
@@ -338,6 +409,7 @@ export default function ProductsPage() {
                   items={tagsData?.data || []}
                   getLabel={(item) => item.name}
                   getValue={(item) => item.id}
+                  sectionKey="tag"
                 />
 
                 <FilterSection
@@ -346,21 +418,39 @@ export default function ProductsPage() {
                   items={featuresData?.data || []}
                   getLabel={(item) => item.name}
                   getValue={(item) => item.id}
+                  sectionKey="feature"
                 />
 
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Checkbox
-                      id="hasPromotion"
-                      checked={filters.hasPromotion === true}
-                      onCheckedChange={(checked) =>
-                        updateFilters({ hasPromotion: checked ? true : undefined })
-                      }
-                    />
-                    <Label htmlFor="hasPromotion" className="text-sm font-medium text-gray-700 cursor-pointer">
-                      Chỉ hiển thị sản phẩm có khuyến mãi
+                <div className="border-b border-gray-200 pb-4 last:border-b-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection("promotion")}
+                    className="w-full flex items-center justify-between mb-3 hover:text-[#FF6B00] transition-colors"
+                  >
+                    <Label className="text-sm font-semibold text-gray-900 cursor-pointer">
+                      Khuyến mãi
                     </Label>
-                  </div>
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 text-gray-500 transition-transform duration-200",
+                        !collapsedSections.promotion && "transform rotate-180"
+                      )}
+                    />
+                  </button>
+                  {!collapsedSections.promotion && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="hasPromotion"
+                        checked={filters.hasPromotion === true}
+                        onCheckedChange={(checked) =>
+                          updateFilters({ hasPromotion: checked ? true : undefined })
+                        }
+                      />
+                      <Label htmlFor="hasPromotion" className="text-sm font-medium text-gray-700 cursor-pointer">
+                        Chỉ hiển thị sản phẩm có khuyến mãi
+                      </Label>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-gray-200">
@@ -375,7 +465,7 @@ export default function ProductsPage() {
 
           {isFilterOpen && (
             <div
-              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              className="fixed inset-0 bg-black/20 z-[55] lg:hidden"
               onClick={() => setIsFilterOpen(false)}
             />
           )}

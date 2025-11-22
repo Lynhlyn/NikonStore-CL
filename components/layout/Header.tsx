@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDown, LogOut, Menu, ShoppingCart as ShoppingCartIcon, User, X, Search } from 'lucide-react'
+import { ChevronDown, LogOut, Menu, ShoppingCart as ShoppingCartIcon, User, X, Search, Loader2 } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState, useMemo } from "react"
@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useFetchCurrentCustomerQuery } from "@/lib/service/modules/customerService"
 import { useFetchAllCategoriesQuery } from "@/lib/service/modules/categoryService"
+import { useFetchProductsQuery } from "@/lib/service/modules/productService"
 import { useSelector } from "react-redux"
 import { RootState } from "@/lib/service/store"
 import CartDropdown from "@/common/components/cart/CartDropdown"
@@ -15,33 +16,176 @@ import CartDropdown from "@/common/components/cart/CartDropdown"
 function SearchBar() {
     const router = useRouter()
     const [searchTerm, setSearchTerm] = useState("")
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+    const searchRef = useRef<HTMLDivElement>(null)
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+    const { data: searchResults, isLoading: isSearching } = useFetchProductsQuery(
+        {
+            keyword: debouncedSearchTerm.trim() || undefined,
+            page: 0,
+            size: 6,
+        },
+        {
+            skip: !debouncedSearchTerm.trim() || debouncedSearchTerm.trim().length < 2,
+        }
+    )
+
+    useEffect(() => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current)
+        }
+
+        debounceTimerRef.current = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm)
+        }, 300)
+
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current)
+            }
+        }
+    }, [searchTerm])
+
+    useEffect(() => {
+        if (searchResults?.data && searchResults.data.length > 0 && debouncedSearchTerm.trim().length >= 2) {
+            setIsDropdownOpen(true)
+        } else {
+            setIsDropdownOpen(false)
+        }
+    }, [searchResults, debouncedSearchTerm])
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false)
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside)
+        }
+    }, [])
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
+        setIsDropdownOpen(false)
         if (searchTerm.trim()) {
             router.push(`/products?keyword=${encodeURIComponent(searchTerm.trim())}`)
         }
     }
 
+    const handleProductClick = (productId: number) => {
+        setIsDropdownOpen(false)
+        setSearchTerm("")
+        router.push(`/products/${productId}`)
+    }
+
+    const formatPrice = (price: number) => {
+        return new Intl.NumberFormat("vi-VN").format(price) + "₫"
+    }
+
+    const showDropdown = isDropdownOpen && debouncedSearchTerm.trim().length >= 2 && searchResults?.data && searchResults.data.length > 0
+
     return (
-        <form onSubmit={handleSearch} className="relative w-full">
-            <input
-                type="text"
-                placeholder="Tìm kiếm sản phẩm..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 pl-10 pr-10 rounded-lg bg-white border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
-            />
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                <Search className="w-5 h-5 text-gray-400" />
-            </div>
-            <button
-                type="submit"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#FF6B00] hover:text-[#FF8C00] transition-colors"
-            >
-                <Search className="w-5 h-5" />
-            </button>
-        </form>
+        <div ref={searchRef} className="relative w-full">
+            <form onSubmit={handleSearch} className="relative w-full">
+                <input
+                    type="text"
+                    placeholder="Tìm kiếm sản phẩm..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value)
+                        if (e.target.value.trim().length >= 2) {
+                            setIsDropdownOpen(true)
+                        }
+                    }}
+                    onFocus={() => {
+                        if (debouncedSearchTerm.trim().length >= 2 && searchResults?.data && searchResults.data.length > 0) {
+                            setIsDropdownOpen(true)
+                        }
+                    }}
+                    className="w-full px-4 py-2 pl-10 pr-10 rounded-lg bg-white border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                />
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                    {isSearching ? (
+                        <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                    ) : (
+                        <Search className="w-5 h-5 text-gray-400" />
+                    )}
+                </div>
+                <button
+                    type="submit"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#FF6B00] hover:text-[#FF8C00] transition-colors"
+                >
+                    <Search className="w-5 h-5" />
+                </button>
+            </form>
+
+            {showDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto">
+                    <div className="p-2">
+                        <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase border-b border-gray-100">
+                            Kết quả tìm kiếm ({searchResults?.pagination?.totalElements || 0})
+                        </div>
+                        <div className="space-y-1">
+                            {searchResults.data.map((product) => {
+                                const primaryVariant = product.primaryVariant
+                                const hasDiscount = primaryVariant.originalPrice > primaryVariant.finalPrice
+
+                                return (
+                                    <button
+                                        key={product.productId}
+                                        onClick={() => handleProductClick(product.productId)}
+                                        className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors text-left group"
+                                    >
+                                        <div className="relative w-16 h-16 shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                                            <Image
+                                                src={primaryVariant.thumbnailImage || "/placeholder.svg"}
+                                                alt={product.productName}
+                                                fill
+                                                className="object-cover group-hover:scale-110 transition-transform duration-300"
+                                                sizes="64px"
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-semibold text-gray-900 group-hover:text-[#FF6B00] transition-colors line-clamp-1">
+                                                {product.productName}
+                                            </div>
+                                            {product.brand?.name && (
+                                                <div className="text-xs text-gray-500 mt-0.5">
+                                                    {product.brand.name}
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-2 mt-1">
+                                                {hasDiscount && (
+                                                    <span className="text-xs text-gray-400 line-through">
+                                                        {formatPrice(primaryVariant.originalPrice)}
+                                                    </span>
+                                                )}
+                                                <span className="text-sm font-bold text-red-600">
+                                                    {formatPrice(primaryVariant.finalPrice)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                        {searchResults.pagination && searchResults.pagination.totalElements > 6 && (
+                            <button
+                                onClick={handleSearch}
+                                className="w-full mt-2 px-4 py-2 text-sm font-semibold text-[#FF6B00] hover:bg-[#FF6B00] hover:text-white rounded-lg transition-colors border border-[#FF6B00]"
+                            >
+                                Xem tất cả ({searchResults.pagination.totalElements} sản phẩm)
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
     )
 }
 
