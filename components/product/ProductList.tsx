@@ -30,7 +30,7 @@ interface ProductListProps {
   }
 }
 
-const ProductList = ({ query = {}, columns = {} }: ProductListProps) => {
+const ProductList = ({ query = {} }: ProductListProps) => {
   const { data, isLoading, error } = useFetchProductsQuery({
     page: query.page || 0,
     size: query.size || 12,
@@ -47,14 +47,6 @@ const ProductList = ({ query = {}, columns = {} }: ProductListProps) => {
     tagIds: query.tagIds,
     featureIds: query.featureIds,
   })
-
-  const gridCols = {
-    base: columns.base ?? 1,
-    sm: columns.sm ?? 2,
-    md: columns.md ?? 3,
-    lg: columns.lg ?? 4,
-    xl: columns.xl ?? 4,
-  }
 
   const gridClasses = [
     "grid",

@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { 
-  CartItem, 
   CartResponse, 
   CartState, 
   UpdateCartItemRequest, 
@@ -10,7 +9,7 @@ import {
   GetCartRequest, 
   AddToCartRequest 
 } from './type';
-import { validateQuantity, sanitizeQuantity, validateProductId } from '../../../../common/utils/cartUtils';
+import { sanitizeQuantity, validateProductId } from '../../../../common/utils/cartUtils';
 
 const initialState: CartState = {
   data: null,

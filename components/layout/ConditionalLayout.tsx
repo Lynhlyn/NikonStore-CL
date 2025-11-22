@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { Header } from './Header'
 import { Footer } from './Footer'
 import BottomBanner from '@/components/banner/BottomBanner'
+import { Toaster } from 'sonner'
 
 interface ConditionalLayoutProps {
   children: React.ReactNode
@@ -17,6 +18,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   
   return (
     <div className="min-h-screen flex flex-col">
+      <Toaster position="top-right" richColors />
       {/* Header - Always fixed on desktop, hidden on mobile for user routes */}
       <div className={`${isUserRoute ? 'hidden lg:block' : ''} lg:fixed lg:top-0 lg:left-0 lg:right-0 lg:z-40`}>
         <Header />

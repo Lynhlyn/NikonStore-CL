@@ -205,7 +205,7 @@ export default function ProductsPage() {
     }))
   }
 
-  const FilterSection = ({
+  const FilterSection = <T extends { id: number; name: string }>({
     title,
     type,
     items,
@@ -215,9 +215,9 @@ export default function ProductsPage() {
   }: {
     title: string
     type: keyof typeof filters
-    items: any[]
-    getLabel: (item: any) => string
-    getValue: (item: any) => number
+    items: T[]
+    getLabel: (item: T) => string
+    getValue: (item: T) => number
     sectionKey: string
   }) => {
     const isCollapsed = collapsedSections[sectionKey]

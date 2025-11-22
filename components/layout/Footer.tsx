@@ -1,4 +1,3 @@
-import Image from "next/image"
 import Link from "next/link"
 import { Mail, Phone, MapPin, Facebook, Instagram, Youtube } from 'lucide-react'
 

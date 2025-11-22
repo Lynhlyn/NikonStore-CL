@@ -12,7 +12,6 @@ interface AuthGuardProps {
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const [shouldRedirect, setShouldRedirect] = useState(false)
   
   const token = typeof window !== "undefined" 
     ? tokenManager.getAccessToken()
@@ -20,7 +19,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   const isUserRoute = pathname?.startsWith('/profile') || pathname?.startsWith('/address') || pathname?.startsWith('/orders')
 
-  const { data, error, isLoading } = useFetchCurrentCustomerQuery(undefined, {
+  const { error, isLoading } = useFetchCurrentCustomerQuery(undefined, {
     skip: !token || !isUserRoute,
     refetchOnMountOrArgChange: true,
   })
@@ -33,7 +32,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
 
     if (error && isUserRoute) {
-      const errorStatus = (error as any)?.status
+      const errorStatus = (error as { status?: number })?.status
       if (errorStatus === 401 || errorStatus === 403) {
         tokenManager.clearTokens()
         const returnUrl = encodeURIComponent(pathname || '/')

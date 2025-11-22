@@ -55,8 +55,6 @@ export default function HomeBanner({
     return null
   }
 
-  const currentBanner = banners[currentIndex]
-
   return (
     <section className="w-full relative">
       <div className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">

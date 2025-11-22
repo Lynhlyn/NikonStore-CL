@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { AuthGuard } from '@/lib/components/AuthGuard'
 import Sidebar from '@/common/components/personal/Sidebar'
 import { useFetchCustomerByIdQuery } from '@/lib/service/modules/customerService'
@@ -97,9 +98,11 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 <h1 className="text-lg font-semibold text-gray-900">{getPageTitle()}</h1>
                 <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                   {customer?.urlImage ? (
-                    <img
+                    <Image
                       src={customer.urlImage}
                       alt="Avatar"
+                      width={40}
+                      height={40}
                       className="w-full h-full object-cover"
                     />
                   ) : (

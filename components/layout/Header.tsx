@@ -198,7 +198,6 @@ interface NavItem {
 
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const [isMobile, setIsMobile] = useState(false)
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
     const headerRef = useRef<HTMLDivElement>(null)
@@ -213,7 +212,7 @@ export function Header() {
         refetchOnMountOrArgChange: true
     })
 
-    const cartData = useSelector((state: RootState) => (state as any).cart?.data)
+    const cartData = useSelector((state: RootState) => state.cart?.data)
     const cartCount = useMemo(() => {
         return cartData?.items?.length || 0
     }, [cartData?.items?.length])
@@ -243,19 +242,6 @@ export function Header() {
             ...(!token ? [{ label: "Tra cứu đơn hàng", href: "/order/track" }] : []),
         ]
     }, [categoriesData, token])
-
-    useEffect(() => {
-        const checkIfMobile = () => {
-            setIsMobile(window.innerWidth < 1024)
-        }
-
-        checkIfMobile()
-        window.addEventListener("resize", checkIfMobile)
-
-        return () => {
-            window.removeEventListener("resize", checkIfMobile)
-        }
-    }, [])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -439,9 +425,11 @@ export function Header() {
                                     >
                                         <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border border-white/30">
                                             {userData?.data?.urlImage ? (
-                                                <img
+                                                <Image
                                                     src={userData.data.urlImage}
                                                     alt={userData.data.fullName || 'User'}
+                                                    width={32}
+                                                    height={32}
                                                     className="w-full h-full object-cover"
                                                 />
                                             ) : (
@@ -513,7 +501,7 @@ export function Header() {
                 <div className="container mx-auto px-4">
                     <nav className="flex items-center justify-center h-14">
                         <div className="flex items-center space-x-8">
-                            {navItems.map((item, index) => (
+                            {navItems.map((item) => (
                                 <div
                                     key={item.label}
                                     className="relative"
@@ -610,9 +598,11 @@ export function Header() {
                                     <div className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
                                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                                             {userData?.data?.urlImage ? (
-                                                <img
+                                                <Image
                                                     src={userData.data.urlImage}
                                                     alt={userData.data.fullName || 'User'}
+                                                    width={40}
+                                                    height={40}
                                                     className="w-full h-full object-cover"
                                                 />
                                             ) : (

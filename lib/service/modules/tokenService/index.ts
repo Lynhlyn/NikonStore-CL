@@ -20,7 +20,7 @@ export const decodeToken = (token?: string | null) => {
   try {
     const decoded = jwtDecode<TokenPayload>(token)
     return decoded
-  } catch (error) {
+  } catch {
     return null
   }
 }

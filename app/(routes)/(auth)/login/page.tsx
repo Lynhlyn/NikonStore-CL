@@ -42,11 +42,12 @@ function LoginForm() {
       } catch {
         router.replace("/")
       }
-    } catch (err: any) {
-      if (err?.data?.error) {
-        toast.error(err.data.error, { id: "login-error" })
-      } else if (err?.message) {
-        toast.error(err.message, { id: "login-error" })
+    } catch (err: unknown) {
+      const error = err as { data?: { error?: string }; message?: string }
+      if (error?.data?.error) {
+        toast.error(error.data.error, { id: "login-error" })
+      } else if (error?.message) {
+        toast.error(error.message, { id: "login-error" })
       } else {
         toast.error("Đăng nhập thất bại. Vui lòng thử lại!", { id: "login-error" })
       }

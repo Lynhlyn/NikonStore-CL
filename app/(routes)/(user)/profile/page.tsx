@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Customer, CustomerUpdate, ResponseEntity } from '@/lib/service/modules/customerService/type'
 import { 
   useFetchCustomerByIdQuery, 
@@ -119,7 +120,7 @@ const ProfilePage = () => {
 
       const imageFile = (profileImage && typeof profileImage !== 'string') ? profileImage : null
 
-      const result = await updateCustomerMutation({
+      await updateCustomerMutation({
         id: customerId,
         customer: customerData,
         image: imageFile
@@ -130,24 +131,25 @@ const ProfilePage = () => {
       
       await refetchCustomer()
       
-    } catch (error: any) {
-      console.error('Profile update failed:', error)
+    } catch (error: unknown) {
+      const err = error as { data?: { data?: Record<string, string>; error?: string; message?: string }; message?: string; status?: number }
+      console.error('Profile update failed:', err)
       
       let errorMessage = 'Cập nhật thông tin thất bại'
       
-      if (error?.data?.data) {
-        setFormErrors(error.data.data)
-      } else if (error?.data) {
-        setFormErrors(error.data)
+      if (err?.data?.data) {
+        setFormErrors(err.data.data)
+      } else if (err?.data) {
+        setFormErrors(err.data as Record<string, string>)
       } else {
         setFormErrors({})
       }
-      if (error?.data?.error) {
-        errorMessage = error.data.error
-      } else if (error?.data?.message) {
-        errorMessage = error.data.message
-      } else if (error?.message) {
-        errorMessage = error.message
+      if (err?.data?.error) {
+        errorMessage = err.data.error
+      } else if (err?.data?.message) {
+        errorMessage = err.data.message
+      } else if (err?.message) {
+        errorMessage = err.message
       }
 
       toast.error(errorMessage)
@@ -201,17 +203,18 @@ const ProfilePage = () => {
       
       handleClosePasswordDialog()
 
-    } catch (error: any) {
-      console.error('Password change failed:', error)
+    } catch (error: unknown) {
+      const err = error as { data?: { error?: string; message?: string }; message?: string; status?: number }
+      console.error('Password change failed:', err)
       
       let errorMessage = 'Đổi mật khẩu thất bại'
       
-      if (error?.data?.error) {
-        errorMessage = error.data.error
-      } else if (error?.data?.message) {
-        errorMessage = error.data.message
-      } else if (error?.message) {
-        errorMessage = error.message
+      if (err?.data?.error) {
+        errorMessage = err.data.error
+      } else if (err?.data?.message) {
+        errorMessage = err.data.message
+      } else if (err?.message) {
+        errorMessage = err.message
       }
 
       if (errorMessage.includes('Mật khẩu hiện tại không chính xác') || 
@@ -222,11 +225,11 @@ const ProfilePage = () => {
       } else if (errorMessage.includes('Token không hợp lệ') || 
                 errorMessage.includes('Invalid token') ||
                 errorMessage.includes('Unauthorized') ||
-                error?.status === 401) {
+                err?.status === 401) {
         toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại')
-      } else if (error?.status === 500) {
+      } else if (err?.status === 500) {
         toast.error('Lỗi server, vui lòng thử lại sau')
-      } else if (error?.status === 400) {
+      } else if (err?.status === 400) {
         toast.error('Dữ liệu không hợp lệ')
       } else {
         toast.error(errorMessage)
@@ -299,9 +302,11 @@ const ProfilePage = () => {
               <div className="relative group">
                 <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
                   {profileImage ? (
-                    <img
+                    <Image
                       src={typeof profileImage === 'string' ? profileImage : URL.createObjectURL(profileImage)}
                       alt="Avatar"
+                      width={96}
+                      height={96}
                       className="w-full h-full object-cover"
                     />
                   ) : (

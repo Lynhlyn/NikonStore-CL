@@ -36,8 +36,9 @@ const customerApi = apiSlice.injectEndpoints({
           body: formData,
         }
       },
-      transformErrorResponse: (error:any) => {
-        console.log('Error updating customer:', error.errors);
+      transformErrorResponse: (error: unknown) => {
+        const err = error as { errors?: unknown }
+        console.log('Error updating customer:', err.errors);
         return error;
       }
     }),
@@ -54,7 +55,7 @@ const customerApi = apiSlice.injectEndpoints({
         console.log('Customer account deactivated:', response);
         return response;
       },
-      transformErrorResponse: (error: any) => {
+      transformErrorResponse: (error: unknown) => {
         console.log('Error deactivating customer account:', error);
         return error;
       },
@@ -69,7 +70,7 @@ const customerApi = apiSlice.injectEndpoints({
         method: 'POST',
         body: { currentPassword, newPassword, confirmPassword },
       }),
-      transformErrorResponse: (error: any) => {
+      transformErrorResponse: (error: unknown) => {
         return error;
       },
     }),

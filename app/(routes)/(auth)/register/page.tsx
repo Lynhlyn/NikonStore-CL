@@ -52,11 +52,12 @@ export default function RegisterPage() {
       toast.success("Đăng ký thành công! Vui lòng đăng nhập.", { id: "register-success" })
       await new Promise((resolve) => setTimeout(resolve, 1500))
       router.push("/login")
-    } catch (err: any) {
-      if (err?.data?.error) {
-        toast.error(err.data.error, { id: "register-error" })
-      } else if (err?.message) {
-        toast.error(err.message, { id: "register-error" })
+    } catch (err: unknown) {
+      const error = err as { data?: { error?: string }; message?: string }
+      if (error?.data?.error) {
+        toast.error(error.data.error, { id: "register-error" })
+      } else if (error?.message) {
+        toast.error(error.message, { id: "register-error" })
       } else {
         toast.error("Đăng ký thất bại. Vui lòng thử lại!", { id: "register-error" })
       }

@@ -34,6 +34,6 @@ export interface CustomerUpdate {
 export interface ResponseStatus {
     status: number
     message: string
-    data?: any
+    data?: unknown
 }
 

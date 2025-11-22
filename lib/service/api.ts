@@ -13,7 +13,7 @@ import { RootState } from "./store"
 
 const baseQuery = fetchBaseQuery({
   baseUrl: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/`,
-  prepareHeaders: (headers, { getState, endpoint }) => {
+  prepareHeaders: (headers) => {
     const token = tokenManager.getAccessToken()
 
     if (token) {
@@ -46,7 +46,7 @@ const baseQueryWithInterceptor: BaseQueryFn<string | FetchArgs, unknown, FetchBa
       try {
         await tokenManager.refreshAccessToken()
         result = await baseQuery(args, api, extraOptions)
-      } catch (error) {
+      } catch {
         tokenManager.clearTokens()
         if (typeof window !== "undefined") {
           window.location.href = "/login"
@@ -96,7 +96,7 @@ export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithInterceptor,
   tagTypes: ["Auth", "Product", "Category", "Order", "User", "Cart", "Customer", "Banner"],
-  extractRehydrationInfo(action, { reducerPath }): any {
+  extractRehydrationInfo(action, { reducerPath }): unknown {
     if (isHydrateAction(action)) {
       if (action.key === "root" && action.payload && Object.prototype.hasOwnProperty.call(action.payload, reducerPath)) {
         return (action.payload as unknown as Record<string, unknown>)[reducerPath]
@@ -104,6 +104,6 @@ export const apiSlice = createApi({
       return undefined
     }
   },
-  endpoints: (_build) => ({}),
+  endpoints: () => ({}),
 })
 

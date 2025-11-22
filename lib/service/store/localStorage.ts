@@ -3,20 +3,20 @@
 import createWebStorage from "redux-persist/lib/storage/createWebStorage"
 
 interface NoopStorageReturnType {
-  getItem: (_key: any) => Promise<null>
-  setItem: (_key: any, value: any) => Promise<any>
-  removeItem: (_key: any) => Promise<void>
+  getItem: (_key: string) => Promise<null>
+  setItem: (_key: string, value: string) => Promise<string>
+  removeItem: (_key: string) => Promise<void>
 }
 
 const createNoopStorage = (): NoopStorageReturnType => {
   return {
-    getItem(_key: any): Promise<null> {
+    getItem(): Promise<null> {
       return Promise.resolve(null)
     },
-    setItem(_key: any, value: any): Promise<any> {
+    setItem(_, value: string): Promise<string> {
       return Promise.resolve(value)
     },
-    removeItem(_key: any): Promise<void> {
+    removeItem(): Promise<void> {
       return Promise.resolve()
     },
   }
