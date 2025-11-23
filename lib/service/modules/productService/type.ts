@@ -33,6 +33,12 @@ export interface ProductVariant {
   sortOrder: number
 }
 
+export interface ProductReviewSummary {
+  averageRating: number
+  totalReviews: number
+  ratingDistribution: Record<number, number>
+}
+
 export interface Product {
   productId: number
   productName: string
@@ -67,6 +73,7 @@ export interface Product {
   bestPromotionValue: number | null
   variants: ProductVariant[]
   primaryVariant: ProductVariant
+  reviewSummary?: ProductReviewSummary
 }
 
 export interface ProductListResponse {
@@ -137,6 +144,7 @@ export interface ProductDetailFull {
   maxPrice: number
   minPriceDiscount: number
   availablePromotions: Promotion[]
+  reviewSummary?: ProductReviewSummary
 }
 
 export interface ProductDetailResponse {
