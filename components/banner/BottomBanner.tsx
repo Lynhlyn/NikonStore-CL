@@ -3,6 +3,7 @@
 import { useGetBannersByPositionQuery } from "@/lib/service/modules/bannerService"
 import Image from "next/image"
 import Link from "next/link"
+import Loader from "@/components/common/Loader"
 
 export default function BottomBanner() {
   const { data: banners = [], isLoading } = useGetBannersByPositionQuery(2) // position = 2 (Dưới/Bottom)
@@ -10,8 +11,8 @@ export default function BottomBanner() {
   if (isLoading) {
     return (
       <div className="w-full py-8 bg-gray-100">
-        <div className="container mx-auto px-4">
-          <div className="h-32 bg-gray-200 animate-pulse rounded"></div>
+        <div className="container mx-auto px-4 flex items-center justify-center">
+          <Loader />
         </div>
       </div>
     )

@@ -21,6 +21,7 @@ import {
 import * as Popover from '@radix-ui/react-popover';
 import * as Checkbox from '@radix-ui/react-checkbox';
 import { Check } from 'lucide-react';
+import Loader from '@/components/common/Loader';
 
 const getSafeCustomerId = (): number | null => {
   const id = getCustomerIdFromToken();
@@ -285,7 +286,7 @@ const CartDropdown: React.FC<CartDropdownProps> = ({ children }) => {
             <div className="flex-1 overflow-y-auto p-4">
               {status === 'loading' && !data ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6B00]"></div>
+                  <Loader />
                 </div>
               ) : totalItems === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">

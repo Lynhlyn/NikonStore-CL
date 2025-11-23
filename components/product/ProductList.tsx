@@ -3,6 +3,7 @@
 import { useFetchProductsQuery } from "@/lib/service/modules/productService"
 import ProductCard from "./ProductCard"
 import { Package } from "lucide-react"
+import Loader from "@/components/common/Loader"
 
 interface ProductListProps {
   query?: {
@@ -63,20 +64,8 @@ const ProductList = ({ query = {} }: ProductListProps) => {
 
   if (isLoading) {
     return (
-      <div className={gridClasses}>
-        {Array.from({ length: query.size || 12 }).map((_, index) => (
-          <div
-            key={index}
-            className="w-full bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm"
-          >
-            <div className="aspect-square bg-gray-200 animate-pulse" />
-            <div className="p-3 sm:p-4 space-y-2">
-              <div className="h-3 sm:h-4 bg-gray-200 rounded animate-pulse" />
-              <div className="h-5 sm:h-6 bg-gray-200 rounded animate-pulse" />
-              <div className="h-3 sm:h-4 bg-gray-200 rounded w-2/3 animate-pulse" />
-            </div>
-          </div>
-        ))}
+      <div className="flex items-center justify-center py-12">
+        <Loader />
       </div>
     )
   }

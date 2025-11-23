@@ -4,7 +4,8 @@ import { addToCart } from "@/lib/service/modules/cartService"
 import type { Product } from "@/lib/service/modules/productService/type"
 import type { AppDispatch } from "@/lib/service/store"
 import { getCustomerIdFromToken } from "@/lib/service/modules/tokenService"
-import { Eye, Loader2, ShoppingCart, Grid3x3 } from "lucide-react"
+import { Eye, ShoppingCart, Grid3x3 } from "lucide-react"
+import Loader from "@/components/common/Loader"
 import Image from "next/image"
 import Link from "next/link"
 import { useState, useMemo, useEffect } from "react"
@@ -384,7 +385,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             >
               {isAddingToCart ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader className="w-4 h-4" />
                   <span>Đang thêm...</span>
                 </>
               ) : (

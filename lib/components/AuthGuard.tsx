@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useFetchCurrentCustomerQuery } from "../service/modules/customerService"
 import { tokenManager } from "../../common/utils/tokenManager"
+import Loader from "@/components/common/Loader"
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -44,7 +45,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (!token && isUserRoute) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Đang kiểm tra đăng nhập...</div>
+        <Loader />
       </div>
     )
   }
@@ -52,7 +53,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (token && isLoading && isUserRoute) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Đang tải...</div>
+        <Loader />
       </div>
     )
   }

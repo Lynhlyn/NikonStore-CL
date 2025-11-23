@@ -22,6 +22,7 @@ import CartInitializer from './CartInitializer';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Checkbox from '@radix-ui/react-checkbox';
 import { Check } from 'lucide-react';
+import Loader from '@/components/common/Loader';
 
 const getSafeCustomerId = (): number | null => {
   const id = getCustomerIdFromToken();
@@ -293,10 +294,7 @@ const CartPageComponent: React.FC = () => {
   if (status === 'loading' && !data) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FF6B00] mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải giỏ hàng...</p>
-        </div>
+        <Loader />
       </div>
     );
   }

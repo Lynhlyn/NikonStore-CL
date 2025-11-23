@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useState, useEffect, useMemo } from "react"
 import type { ProductVariant } from "@/lib/service/modules/productService/type"
-import { ShoppingCart, Check, AlertCircle, Minus, Plus, Loader2 } from "lucide-react"
+import { ShoppingCart, Check, AlertCircle, Minus, Plus } from "lucide-react"
+import Loader from "@/components/common/Loader"
 
 interface ProductVariantDialogProps {
     open: boolean
@@ -323,7 +324,7 @@ export function ProductVariantDialog({
                                 >
                                     {isAdding ? (
                                         <>
-                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                            <Loader className="w-5 h-5 mr-2" />
                                             Đang thêm...
                                         </>
                                     ) : (

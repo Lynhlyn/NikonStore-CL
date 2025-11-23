@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useState, useEffect } from "react"
+import Loader from "@/components/common/Loader"
 
 interface HomeBannerProps {
   position?: number
@@ -45,8 +46,8 @@ export default function HomeBanner({
 
   if (isLoading) {
     return (
-      <div className="w-full h-[400px] bg-gray-200 animate-pulse flex items-center justify-center">
-        <p className="text-gray-500">Đang tải banner...</p>
+      <div className="w-full h-[400px] flex items-center justify-center">
+        <Loader />
       </div>
     )
   }

@@ -12,6 +12,7 @@ import ProfileForm from '@/common/components/personal/ProfileForm'
 import ChangePasswordForm from '@/common/components/personal/ChangePasswordForm'
 import { getCustomerIdFromToken } from '@/lib/service/modules/tokenService'
 import { toast } from 'sonner'
+import Loader from '@/components/common/Loader'
 
 const ProfilePage = () => {
   const [currentUser, setCurrentUser] = useState<ResponseEntity<Customer> | null>(null)
@@ -271,7 +272,11 @@ const ProfilePage = () => {
   }
 
   if (isQueryLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Đang tải...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader />
+      </div>
+    )
   }
 
   if (queryError) {

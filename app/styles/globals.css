@@ -128,3 +128,69 @@
   }
 }
 
+.loader {
+  width: 84px;
+  aspect-ratio: 1;
+  background:
+    linear-gradient(#ff4500 0 0) left/50% 100% no-repeat,
+    conic-gradient(
+      from -90deg at 32px 9.47px,
+      #fff8dc 135deg,
+      #8b0000 0 270deg,
+      #ffa500 0
+    );
+  background-blend-mode: multiply;
+  -webkit-mask: linear-gradient(
+      to bottom right,
+      #0000 8px,
+      #000 0 52px,
+      #0000 0
+    ),
+    conic-gradient(from -90deg at right 6px bottom 6px, #000 90deg, #0000 0);
+  mask: linear-gradient(to bottom right, #0000 8px, #000 0 52px, #0000 0),
+    conic-gradient(from -90deg at right 6px bottom 6px, #000 90deg, #0000 0);
+  background-size: 50% 50%;
+  -webkit-mask-size: 50% 50%;
+  mask-size: 50% 50%;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  animation: l9 1.8s infinite cubic-bezier(0.5, 0.2, 0.5, 1);
+  box-shadow: 0 0 15px rgba(255, 69, 0, 0.6);
+  transform: translate3d(0, 0, 0) rotateY(15deg);
+  will-change: transform, background-position;
+  contain: layout style paint;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@keyframes l9 {
+  0% {
+    background-position:
+      0% 0%,
+      0 0;
+    transform: translate3d(0, 0, 0) rotateY(15deg) scale3d(1, 1, 1);
+  }
+  25% {
+    background-position:
+      100% 0%,
+      0 0;
+  }
+  50% {
+    background-position:
+      100% 100%,
+      0 0;
+    transform: translate3d(0, 0, 0) rotateY(15deg) scale3d(1.08, 1.08, 1);
+  }
+  75% {
+    background-position:
+      0% 100%,
+      0 0;
+  }
+  100% {
+    background-position:
+      0% 0%,
+      0 0;
+    transform: translate3d(0, 0, 0) rotateY(15deg) scale3d(1, 1, 1);
+  }
+}
+

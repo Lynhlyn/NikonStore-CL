@@ -8,6 +8,7 @@ import { useAppDispatch } from "../hooks/redux"
 import { setCustomerId } from "../features/appSlice"
 import { getCustomerIdFromToken } from "../service/modules/tokenService"
 import { AuthGuard } from "../components/AuthGuard"
+import Loader from "@/components/common/Loader"
 
 interface ProvidersProps {
   children: React.ReactNode
@@ -32,7 +33,7 @@ export function ReduxProvider({ children }: ProvidersProps) {
       <PersistGate 
         loading={
           <div className="min-h-screen flex items-center justify-center">
-            <div className="text-gray-600">Đang tải...</div>
+            <Loader />
           </div>
         } 
         persistor={persistor}

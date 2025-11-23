@@ -7,6 +7,7 @@ import { AuthGuard } from '@/lib/components/AuthGuard'
 import Sidebar from '@/common/components/personal/Sidebar'
 import { useFetchCustomerByIdQuery } from '@/lib/service/modules/customerService'
 import { getCustomerIdFromToken } from '@/lib/service/modules/tokenService'
+import Loader from '@/components/common/Loader'
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -29,7 +30,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   if (!customerId || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Đang tải...</div>
+        <Loader />
       </div>
     )
   }

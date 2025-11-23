@@ -1,6 +1,7 @@
 "use client"
 
-import { ChevronDown, LogOut, Menu, ShoppingCart as ShoppingCartIcon, User, X, Search, Loader2 } from 'lucide-react'
+import { ChevronDown, LogOut, Menu, ShoppingCart as ShoppingCartIcon, User, X, Search } from 'lucide-react'
+import Loader from "@/components/common/Loader"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState, useMemo } from "react"
@@ -111,7 +112,7 @@ function SearchBar() {
                 />
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
                     {isSearching ? (
-                        <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                        <Loader className="w-5 h-5" />
                     ) : (
                         <Search className="w-5 h-5 text-gray-400" />
                     )}

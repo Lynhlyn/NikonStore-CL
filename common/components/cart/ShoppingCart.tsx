@@ -23,6 +23,7 @@ import {
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Checkbox from '@radix-ui/react-checkbox';
 import { Check } from 'lucide-react';
+import Loader from '@/components/common/Loader';
 
 const getSafeCustomerId = (): number | null => {
   const id = getCustomerIdFromToken();
@@ -332,7 +333,9 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ isCartOpen, setIsCartOpen }
           <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" />
           <Dialog.Content className="fixed top-0 right-0 h-full bg-white shadow-2xl z-50 flex flex-col w-[33.33vw] min-w-[320px] max-w-[600px]">
             <Dialog.Title className="sr-only">Giỏ hàng của tôi</Dialog.Title>
-            <div className="text-center p-8">Đang tải...</div>
+            <div className="flex items-center justify-center p-8">
+              <Loader />
+            </div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
