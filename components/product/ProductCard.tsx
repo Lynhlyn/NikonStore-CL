@@ -4,7 +4,7 @@ import { addToCart } from "@/lib/service/modules/cartService"
 import type { Product } from "@/lib/service/modules/productService/type"
 import type { AppDispatch } from "@/lib/service/store"
 import { getCustomerIdFromToken } from "@/lib/service/modules/tokenService"
-import { Eye, ShoppingCart, Grid3x3 } from "lucide-react"
+import { Eye, ShoppingCart, Grid3x3, Star } from "lucide-react"
 import Loader from "@/components/common/Loader"
 import Image from "next/image"
 import Link from "next/link"
@@ -253,10 +253,34 @@ const ProductCard = ({ product }: ProductCardProps) => {
         )}
 
         <Link href={`/products/${product.productId}`}>
-          <h3 className="text-sm sm:text-base font-semibold mb-3 line-clamp-2 leading-snug text-gray-900 group-hover:text-[#FF6B00] transition-colors duration-200 min-h-[2.5rem]">
+          <h3 className="text-sm sm:text-base font-semibold mb-2 line-clamp-2 leading-snug text-gray-900 group-hover:text-[#FF6B00] transition-colors duration-200 min-h-[2.5rem]">
             {product.productName}
           </h3>
         </Link>
+
+        {product.reviewSummary && product.reviewSummary.totalReviews > 0 && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <div className="flex items-center gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-3.5 h-3.5 ${
+                    i < Math.round(product.reviewSummary!.averageRating)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "fill-gray-200 text-gray-200"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-gray-600">
+              ({product.reviewSummary.averageRating.toFixed(1)})
+            </span>
+            <span className="text-xs text-gray-400">·</span>
+            <span className="text-xs text-gray-500">
+              {product.reviewSummary.totalReviews} đánh giá
+            </span>
+          </div>
+        )}
 
         {colorOptions.length > 0 && (
           <div className="mb-3">
