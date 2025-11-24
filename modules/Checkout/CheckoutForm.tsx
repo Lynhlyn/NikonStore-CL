@@ -16,6 +16,8 @@ import {
   useGetDistrictsQuery,
   useGetWardsQuery,
 } from '@/lib/service/modules/ghnService';
+import { useFetchCustomerByIdQuery } from '@/lib/service/modules/customerService';
+import type { ShippingAddress } from '@/lib/service/modules/customerService/type';
 import {
   Select,
   SelectContent,
@@ -23,6 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/core/shadcn/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/src/components/ui/dialog';
+import { Button } from '@/core/shadcn/components/ui/button';
+import { Edit3, Plus, MapPin } from 'lucide-react';
 import Loader from '@/components/common/Loader';
 
 interface CheckoutItem {
@@ -42,6 +53,21 @@ export default function CheckoutForm() {
   const [calculateShippingFee] = useCalculateShippingFeeMutation();
   const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([]);
   const [checkoutTotal, setCheckoutTotal] = useState(0);
+
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
+    null
+  );
+  const [useSavedAddress, setUseSavedAddress] = useState(false);
+
+  const { data: customerData, isLoading: isCustomerLoading } =
+    useFetchCustomerByIdQuery(customerId!, {
+      skip: !customerId,
+    });
+
+  const shippingAddresses =
+    customerData?.data?.shippingAddresses || [];
+  const currentAddress = shippingAddresses[selectedAddressId || 0];
 
   const [formData, setFormData] = useState({
     recipientName: '',
@@ -174,6 +200,79 @@ export default function CheckoutForm() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (
+      customerData?.data &&
+      shippingAddresses.length > 0 &&
+      provinces.length > 0
+    ) {
+      const defaultIdx = shippingAddresses.findIndex(
+        (addr) => addr.isDefault
+      );
+      const addressToLoad =
+        defaultIdx !== -1
+          ? shippingAddresses[defaultIdx]
+          : shippingAddresses[0];
+      setSelectedAddressId(defaultIdx !== -1 ? defaultIdx : 0);
+      setUseSavedAddress(true);
+      loadAddressToForm(addressToLoad);
+    }
+  }, [customerData, provinces]);
+
+  const loadAddressToForm = (address: ShippingAddress) => {
+    setFormData((prev) => ({
+      ...prev,
+      recipientName: address.recipientName,
+      recipientPhone: address.recipientPhoneNumber,
+      recipientEmail: customerData?.data?.email || '',
+      detailedAddress: address.detailedAddress,
+    }));
+
+    if (provinces.length > 0) {
+      const province = provinces.find((p) =>
+        p.name.toLowerCase().includes(address.province.toLowerCase()) ||
+        address.province.toLowerCase().includes(p.name.toLowerCase())
+      );
+      if (province) {
+        setFormData((prev) => ({ ...prev, provinceId: province.value }));
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (
+      useSavedAddress &&
+      currentAddress &&
+      formData.provinceId &&
+      districts.length > 0
+    ) {
+      const district = districts.find((d) =>
+        d.name.toLowerCase().includes(currentAddress.district.toLowerCase()) ||
+        currentAddress.district.toLowerCase().includes(d.name.toLowerCase())
+      );
+      if (district) {
+        setFormData((prev) => ({ ...prev, districtId: district.value }));
+      }
+    }
+  }, [formData.provinceId, districts, useSavedAddress, currentAddress]);
+
+  useEffect(() => {
+    if (
+      useSavedAddress &&
+      currentAddress &&
+      formData.districtId &&
+      wards.length > 0
+    ) {
+      const ward = wards.find((w) =>
+        w.name.toLowerCase().includes(currentAddress.ward.toLowerCase()) ||
+        currentAddress.ward.toLowerCase().includes(w.name.toLowerCase())
+      );
+      if (ward) {
+        setFormData((prev) => ({ ...prev, wardCode: ward.value }));
+      }
+    }
+  }, [formData.districtId, wards, useSavedAddress, currentAddress]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
@@ -329,18 +428,174 @@ export default function CheckoutForm() {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Họ và tên người nhận <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.recipientName}
-                    onChange={(e) => handleInputChange('recipientName', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Nhập họ và tên"
-                  />
-                </div>
+                {customerId && shippingAddresses.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Địa chỉ đã lưu
+                      </label>
+                      <Dialog open={isEditingAddress} onOpenChange={setIsEditingAddress}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                            {useSavedAddress ? 'Thay đổi địa chỉ' : 'Chọn địa chỉ'}
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-lg max-h-[80vh]">
+                          <DialogHeader>
+                            <DialogTitle>Chọn địa chỉ giao hàng</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                            {shippingAddresses.map((addr, idx) => (
+                              <div
+                                key={addr.id}
+                                className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                                  selectedAddressId === idx
+                                    ? 'border-blue-500 bg-blue-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                                onClick={() => {
+                                  setSelectedAddressId(idx);
+                                  setUseSavedAddress(true);
+                                  loadAddressToForm(addr);
+                                }}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div
+                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                                      selectedAddressId === idx
+                                        ? 'border-blue-500 bg-blue-500'
+                                        : 'border-gray-300'
+                                    }`}
+                                  >
+                                    {selectedAddressId === idx && (
+                                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium text-gray-900">
+                                          {addr.recipientName}
+                                        </span>
+                                        {addr.recipientPhoneNumber && (
+                                          <span className="text-gray-600">
+                                            | {addr.recipientPhoneNumber}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {addr.isDefault && (
+                                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
+                                          Mặc định
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-gray-700">
+                                      {addr.detailedAddress}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                      {addr.ward}, {addr.district}, {addr.province}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex flex-col gap-2 pt-4 border-t">
+                            <Button
+                              variant="outline"
+                              className="w-full flex items-center justify-center gap-2"
+                              onClick={() => router.push('/address')}
+                            >
+                              <Plus className="h-4 w-4" />
+                              Thêm địa chỉ mới
+                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="default"
+                                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                onClick={() => setIsEditingAddress(false)}
+                              >
+                                Xong
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => {
+                                  setIsEditingAddress(false);
+                                  setUseSavedAddress(false);
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    recipientName: '',
+                                    recipientPhone: '',
+                                    detailedAddress: '',
+                                    provinceId: null,
+                                    districtId: null,
+                                    wardCode: null,
+                                  }));
+                                }}
+                              >
+                                Nhập mới
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    {useSavedAddress && currentAddress && (
+                      <div className="p-4 bg-gray-50 rounded-lg border">
+                        <div className="flex items-start gap-3">
+                          <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">
+                                {currentAddress.recipientName}
+                              </span>
+                              {currentAddress.isDefault && (
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
+                                  Mặc định
+                                </span>
+                              )}
+                            </div>
+                            {currentAddress.recipientPhoneNumber && (
+                              <div className="text-gray-700">
+                                SĐT: {currentAddress.recipientPhoneNumber}
+                              </div>
+                            )}
+                            <div className="font-medium text-gray-900">
+                              {currentAddress.detailedAddress}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {currentAddress.ward}, {currentAddress.district},{' '}
+                              {currentAddress.province}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(!customerId || !useSavedAddress) && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Họ và tên người nhận <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.recipientName}
+                        onChange={(e) =>
+                          handleInputChange('recipientName', e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Nhập họ và tên"
+                      />
+                    </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -487,6 +742,8 @@ export default function CheckoutForm() {
                     placeholder="Ghi chú về đơn hàng..."
                   />
                 </div>
+                  </>
+                )}
               </div>
             </div>
 
