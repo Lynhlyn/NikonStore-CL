@@ -5,9 +5,24 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowLeft, MapPin, CreditCard, Package, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useCreateOrderMutation } from '@/lib/service/modules/orderService';
+import {
+  useCreateOrderMutation,
+  useCalculateShippingFeeMutation,
+} from '@/lib/service/modules/orderService';
 import type { CreateOrderRequest } from '@/lib/service/modules/orderService/type';
 import { getCookie } from '@/common/utils/cartUtils';
+import {
+  useGetProvincesQuery,
+  useGetDistrictsQuery,
+  useGetWardsQuery,
+} from '@/lib/service/modules/ghnService';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/core/shadcn/components/ui/select';
 import Loader from '@/components/common/Loader';
 
 interface CheckoutItem {
@@ -24,6 +39,7 @@ export default function CheckoutForm() {
   const router = useRouter();
   const { customerId } = useAuth();
   const [createOrder, { isLoading }] = useCreateOrderMutation();
+  const [calculateShippingFee] = useCalculateShippingFeeMutation();
   const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([]);
   const [checkoutTotal, setCheckoutTotal] = useState(0);
 
@@ -31,9 +47,9 @@ export default function CheckoutForm() {
     recipientName: '',
     recipientPhone: '',
     recipientEmail: '',
-    province: '',
-    district: '',
-    ward: '',
+    provinceId: null as number | null,
+    districtId: null as number | null,
+    wardCode: null as string | null,
     detailedAddress: '',
     notes: '',
     paymentMethod: 'cod',
@@ -41,16 +57,107 @@ export default function CheckoutForm() {
 
   const [shippingFee, setShippingFee] = useState(0);
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
-  const [toDistrictId, setToDistrictId] = useState<number | null>(null);
-  const [toWardCode, setToWardCode] = useState<string | null>(null);
+
+  const { data: provincesData, isLoading: provincesLoading } =
+    useGetProvincesQuery();
+  const { data: districtsData, isLoading: districtsLoading } =
+    useGetDistrictsQuery(formData.provinceId!, {
+      skip: !formData.provinceId,
+    });
+  const { data: wardsData, isLoading: wardsLoading } = useGetWardsQuery(
+    formData.districtId!,
+    {
+      skip: !formData.districtId,
+    }
+  );
+
+  const provinces =
+    provincesData?.data?.map((p) => ({
+      id: p.ProvinceID,
+      name: p.ProvinceName,
+      value: p.ProvinceID,
+      label: p.ProvinceName,
+    })) || [];
+
+  const districts =
+    districtsData?.data?.map((d) => ({
+      id: d.DistrictID,
+      name: d.DistrictName,
+      value: d.DistrictID,
+      label: d.DistrictName,
+    })) || [];
+
+  const wards =
+    wardsData?.data?.map((w) => ({
+      id: w.WardCode,
+      name: w.WardName,
+      value: w.WardCode,
+      label: w.WardName,
+    })) || [];
+
+  const selectedProvince = provinces.find(
+    (p) => p.value === formData.provinceId
+  );
+  const selectedDistrict = districts.find(
+    (d) => d.value === formData.districtId
+  );
+  const selectedWard = wards.find((w) => w.value === formData.wardCode);
 
   useEffect(() => {
-    if (formData.province && formData.district && formData.ward) {
-      setShippingFee(30000);
-    } else {
-      setShippingFee(0);
-    }
-  }, [formData.province, formData.district, formData.ward]);
+    const calculateFee = async () => {
+      if (
+        !formData.districtId ||
+        !formData.wardCode ||
+        checkoutItems.length === 0 ||
+        districtsLoading ||
+        wardsLoading
+      ) {
+        setShippingFee(0);
+        return;
+      }
+
+      setIsCalculatingShipping(true);
+      try {
+        const totalWeight = checkoutItems.reduce(
+          (sum, item) => sum + (item.quantity * 0.5),
+          0.5
+        );
+
+        const feeResponse = await calculateShippingFee({
+          toDistrictId: formData.districtId,
+          toWardCode: formData.wardCode,
+          toProvinceName: selectedProvince?.name,
+          weightKg: totalWeight,
+          length: 25,
+          width: 20,
+          height: 10,
+        }).unwrap();
+
+        if (feeResponse.error) {
+          console.error('Shipping fee error:', feeResponse.error);
+          setShippingFee(30000);
+        } else {
+          setShippingFee(feeResponse.shippingFee || 30000);
+        }
+      } catch (error) {
+        console.error('Error calculating shipping fee:', error);
+        setShippingFee(30000);
+      } finally {
+        setIsCalculatingShipping(false);
+      }
+    };
+
+    const timeoutId = setTimeout(calculateFee, 500);
+    return () => clearTimeout(timeoutId);
+  }, [
+    formData.districtId,
+    formData.wardCode,
+    selectedProvince?.name,
+    checkoutItems,
+    districtsLoading,
+    wardsLoading,
+    calculateShippingFee,
+  ]);
 
   useEffect(() => {
     const items = localStorage.getItem('checkoutItems');
@@ -101,15 +208,15 @@ export default function CheckoutForm() {
       toast.error('Email không hợp lệ');
       return false;
     }
-    if (!formData.province.trim()) {
+    if (!formData.provinceId) {
       toast.error('Vui lòng chọn tỉnh/thành phố');
       return false;
     }
-    if (!formData.district.trim()) {
+    if (!formData.districtId) {
       toast.error('Vui lòng chọn quận/huyện');
       return false;
     }
-    if (!formData.ward.trim()) {
+    if (!formData.wardCode) {
       toast.error('Vui lòng chọn phường/xã');
       return false;
     }
@@ -131,7 +238,14 @@ export default function CheckoutForm() {
     }
 
     try {
-      const shippingAddress = `${formData.detailedAddress}, ${formData.ward}, ${formData.district}, ${formData.province}`;
+      const shippingAddress = [
+        formData.detailedAddress,
+        selectedWard?.name,
+        selectedDistrict?.name,
+        selectedProvince?.name,
+      ]
+        .filter(Boolean)
+        .join(', ');
 
       const orderData: CreateOrderRequest = {
         customerId: customerId || null,
@@ -150,8 +264,8 @@ export default function CheckoutForm() {
         recipientEmail: formData.recipientEmail,
         shippingFee: shippingFee,
         orderType: 'ONLINE',
-        toDistrictId: toDistrictId || undefined,
-        toWardCode: toWardCode || undefined,
+        toDistrictId: formData.districtId || undefined,
+        toWardCode: formData.wardCode || undefined,
       };
 
       const order = await createOrder(orderData).unwrap();
@@ -260,13 +374,32 @@ export default function CheckoutForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tỉnh/Thành phố <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={formData.province}
-                    onChange={(e) => handleInputChange('province', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Nhập tỉnh/thành phố"
-                  />
+                  <Select
+                    value={formData.provinceId?.toString() || ''}
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        provinceId: Number(value),
+                        districtId: null,
+                        wardCode: null,
+                      }));
+                    }}
+                    disabled={provincesLoading}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn tỉnh/thành phố" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {provinces.map((province) => (
+                        <SelectItem
+                          key={province.id}
+                          value={province.value.toString()}
+                        >
+                          {province.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -274,26 +407,58 @@ export default function CheckoutForm() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Quận/Huyện <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={formData.district}
-                      onChange={(e) => handleInputChange('district', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Nhập quận/huyện"
-                    />
+                    <Select
+                      value={formData.districtId?.toString() || ''}
+                      onValueChange={(value) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          districtId: Number(value),
+                          wardCode: null,
+                        }));
+                      }}
+                      disabled={!formData.provinceId || districtsLoading}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Chọn quận/huyện" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {districts.map((district) => (
+                          <SelectItem
+                            key={district.id}
+                            value={district.value.toString()}
+                          >
+                            {district.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Phường/Xã <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={formData.ward}
-                      onChange={(e) => handleInputChange('ward', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Nhập phường/xã"
-                    />
+                    <Select
+                      value={formData.wardCode || ''}
+                      onValueChange={(value) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          wardCode: value,
+                        }));
+                      }}
+                      disabled={!formData.districtId || wardsLoading}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Chọn phường/xã" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {wards.map((ward) => (
+                          <SelectItem key={ward.id} value={ward.value}>
+                            {ward.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -422,7 +587,9 @@ export default function CheckoutForm() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Phí vận chuyển:</span>
                   <span className="font-medium text-gray-900">
-                    {isCalculatingShipping
+                    {isCalculatingShipping ||
+                    districtsLoading ||
+                    wardsLoading
                       ? 'Đang tính...'
                       : formatCurrency(shippingFee)}
                   </span>

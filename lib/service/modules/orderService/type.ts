@@ -76,6 +76,7 @@ export interface GetOrdersParams {
 export interface ShippingFeeRequest {
   toDistrictId: number;
   toWardCode: string;
+  toProvinceName?: string;
   weightKg: number;
   length: number;
   width: number;
