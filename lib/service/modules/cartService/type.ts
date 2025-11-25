@@ -4,6 +4,7 @@ interface CartItem {
   productName: string;
   sku: string;
   color: string;
+  colorHex?: string;
   capacity: string;
   dimensions: string;
   strap_type: string;

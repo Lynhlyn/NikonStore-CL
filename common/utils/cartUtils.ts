@@ -46,8 +46,16 @@ export const getItemName = (item: CartItem): string => {
   return parts.join(' - ');
 };
 
+/**
+ * Lấy giá sau giảm (đơn giá) của sản phẩm
+ * @param item - Cart item
+ * @returns Giá sau giảm = price - discount
+ */
 export const getFinalPrice = (item: CartItem): number => {
-  return item?.price || 0;
+  if (!item) return 0;
+  const originalPrice = item.price || 0;
+  const discount = item.discount || 0;
+  return originalPrice - discount;
 };
 
 export const getUnitPrice = (item: CartItem): number => {

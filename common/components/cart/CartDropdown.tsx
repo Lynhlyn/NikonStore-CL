@@ -46,8 +46,11 @@ const CartDropdownItem = React.memo(({
     setLocalQuantity(item.quantity);
   }, [item.quantity]);
 
-  const finalPrice = useMemo(() => getFinalPrice(item), [item.totalPrice]);
+  const finalPrice = useMemo(() => getFinalPrice(item), [item.price, item.discount]);
   const itemName = useMemo(() => getItemName(item), [item]);
+  const originalPrice = item.price || 0;
+  const discount = item.discount || 0;
+  const hasDiscount = discount > 0;
 
   const handleQuantityChange = useCallback((newQuantity: number) => {
     if (newQuantity === 0) {
@@ -91,9 +94,20 @@ const CartDropdownItem = React.memo(({
             <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">
               {item.productName}
             </h4>
-            <p className="text-xs text-gray-500 mb-2">
-              {formatCurrency(finalPrice)} x {localQuantity}
-            </p>
+            {hasDiscount ? (
+              <div className="mb-2">
+                <p className="text-xs text-red-600 font-semibold">
+                  {formatCurrency(finalPrice)} x {localQuantity}
+                </p>
+                <p className="text-xs text-gray-400 line-through">
+                  {formatCurrency(originalPrice)} x {localQuantity}
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 mb-2">
+                {formatCurrency(finalPrice)} x {localQuantity}
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -126,9 +140,25 @@ const CartDropdownItem = React.memo(({
               <Plus className="w-3 h-3" />
             </button>
           </div>
-          <span className="text-sm font-semibold text-gray-900">
-            {formatCurrency(finalPrice * localQuantity)}
-          </span>
+          <div className="text-right">
+            {hasDiscount ? (
+              <div className="flex flex-col items-end">
+                <span className="text-sm font-semibold text-red-600">
+                  {formatCurrency(item.totalPrice || finalPrice * localQuantity)}
+                </span>
+                <span className="text-xs text-gray-400 line-through">
+                  {formatCurrency(originalPrice * localQuantity)}
+                </span>
+                <span className="text-xs text-red-600 font-semibold">
+                  Tiết kiệm: {formatCurrency(discount * localQuantity)}
+                </span>
+              </div>
+            ) : (
+              <span className="text-sm font-semibold text-gray-900">
+                {formatCurrency(item.totalPrice || finalPrice * localQuantity)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

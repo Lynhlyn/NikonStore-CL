@@ -578,9 +578,13 @@ export default function ProductDetailPage() {
                     <div className="text-sm text-red-700">
                       {selectedVariantInfo.promotion.discountType ===
                       "percentage"
-                        ? `Giảm ${selectedVariantInfo.promotion.discountValue}%`
+                        ? `Giảm ${selectedVariantInfo.promotion.discountValue}% - Tiết kiệm ${formatPrice(
+                            selectedVariantInfo.discountAmount
+                          )}`
                         : `Giảm ${formatPrice(
                             selectedVariantInfo.promotion.discountValue
+                          )} - Tiết kiệm ${formatPrice(
+                            selectedVariantInfo.discountAmount
                           )}`}
                     </div>
                   </div>

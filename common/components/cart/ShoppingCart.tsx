@@ -53,8 +53,11 @@ const CartItemComponent = React.memo(({
     setInputValue(item.quantity.toString());
   }, [item.quantity]);
 
-  const finalPrice = useMemo(() => getFinalPrice(item), [item.totalPrice]);
+  const finalPrice = useMemo(() => getFinalPrice(item), [item.price, item.discount]);
   const itemName = useMemo(() => getItemName(item), [item]);
+  const originalPrice = item.price || 0;
+  const discount = item.discount || 0;
+  const hasDiscount = discount > 0;
 
   const handleQuantityChange = useCallback((newQuantity: number) => {
     if (newQuantity === 0) {
@@ -147,10 +150,37 @@ const CartItemComponent = React.memo(({
           </div>
           <div className="mt-2 flex items-center justify-between">
             <div className="text-sm text-gray-500">
-              {localQuantity}x {formatCurrency(finalPrice)}
+              {hasDiscount ? (
+                <div className="flex flex-col">
+                  <span className="text-red-600 font-semibold">
+                    {localQuantity}x {formatCurrency(finalPrice)}
+                  </span>
+                  <span className="text-xs text-gray-400 line-through">
+                    {localQuantity}x {formatCurrency(originalPrice)}
+                  </span>
+                </div>
+              ) : (
+                <span>{localQuantity}x {formatCurrency(finalPrice)}</span>
+              )}
             </div>
-            <div className="text-sm font-medium text-gray-900">
-              {formatCurrency(finalPrice * localQuantity)}
+            <div className="text-right">
+              {hasDiscount ? (
+                <div className="flex flex-col items-end">
+                  <div className="text-sm font-medium text-red-600">
+                    {formatCurrency(item.totalPrice || finalPrice * localQuantity)}
+                  </div>
+                  <div className="text-xs text-gray-400 line-through">
+                    {formatCurrency(originalPrice * localQuantity)}
+                  </div>
+                  <div className="text-xs text-red-600 font-semibold">
+                    Tiết kiệm: {formatCurrency(discount * localQuantity)}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm font-medium text-gray-900">
+                  {formatCurrency(item.totalPrice || finalPrice * localQuantity)}
+                </div>
+              )}
             </div>
           </div>
           <div className="mt-2 flex items-center gap-2">

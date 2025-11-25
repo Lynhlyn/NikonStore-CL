@@ -149,16 +149,47 @@ const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage
           <Link 
             href="/profile" 
             className={`flex items-center px-4 py-4 lg:px-3 lg:py-2 text-base lg:text-sm rounded-lg lg:rounded-md transition-colors ${
-              pathname === '/profile' 
+              pathname === '/profile' || pathname.startsWith('/profile')
                 ? 'text-[#FF6B00] bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20' 
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
             onClick={() => handleNavigation()}
           >
-            <svg className="w-6 h-6 lg:w-4 lg:h-4 mr-4 lg:mr-3" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+            <svg className="w-6 h-6 lg:w-4 lg:h-4 mr-4 lg:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            Hồ sơ
+            Thông tin cá nhân
+          </Link>
+
+          <Link 
+            href="/address" 
+            className={`flex items-center px-4 py-4 lg:px-3 lg:py-2 text-base lg:text-sm rounded-lg lg:rounded-md transition-colors ${
+              pathname === '/address' || pathname.startsWith('/address')
+                ? 'text-[#FF6B00] bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+            onClick={() => handleNavigation()}
+          >
+            <svg className="w-6 h-6 lg:w-4 lg:h-4 mr-4 lg:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Địa chỉ giao hàng
+          </Link>
+
+          <Link 
+            href="/orders" 
+            className={`flex items-center px-4 py-4 lg:px-3 lg:py-2 text-base lg:text-sm rounded-lg lg:rounded-md transition-colors ${
+              pathname === '/orders' || pathname.startsWith('/orders')
+                ? 'text-[#FF6B00] bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+            onClick={() => handleNavigation()}
+          >
+            <svg className="w-6 h-6 lg:w-4 lg:h-4 mr-4 lg:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            Đơn hàng của tôi
           </Link>
         </nav>
 

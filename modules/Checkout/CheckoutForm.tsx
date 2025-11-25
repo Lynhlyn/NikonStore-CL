@@ -33,7 +33,7 @@ import {
   DialogTrigger,
 } from '@/src/components/ui/dialog';
 import { Button } from '@/core/shadcn/components/ui/button';
-import { Edit3, Plus, MapPin } from 'lucide-react';
+import { Edit3, Plus, MapIcon } from 'lucide-react';
 import Loader from '@/components/common/Loader';
 
 interface CheckoutItem {
@@ -826,9 +826,21 @@ export default function CheckoutForm() {
                       <p className="text-sm text-gray-500 mt-1">
                         Số lượng: {item.quantity}
                       </p>
-                      <p className="text-sm font-semibold text-gray-900 mt-1">
-                        {formatCurrency(item.price * item.quantity)}
-                      </p>
+                      <div className="mt-1">
+                        <p className="text-sm font-semibold text-red-600">
+                          {formatCurrency(item.price * item.quantity)}
+                        </p>
+                        {(item as any).discount > 0 && (
+                          <>
+                            <p className="text-xs text-gray-400 line-through">
+                              {formatCurrency((item.price + (item as any).discount) * item.quantity)}
+                            </p>
+                            <p className="text-xs text-red-600 font-semibold">
+                              Tiết kiệm: {formatCurrency((item as any).discount * item.quantity)}
+                            </p>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
