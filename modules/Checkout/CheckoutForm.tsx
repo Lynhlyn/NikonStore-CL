@@ -33,7 +33,7 @@ import {
   DialogTrigger,
 } from '@/src/components/ui/dialog';
 import { Button } from '@/core/shadcn/components/ui/button';
-import { Edit3, Plus, MapPin } from 'lucide-react';
+import { Edit3, Plus, MapIcon } from 'lucide-react';
 import Loader from '@/components/common/Loader';
 
 interface CheckoutItem {

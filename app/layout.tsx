@@ -4,6 +4,7 @@ import "@/app/styles/globals.css";
 import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
 import { ReduxProvider } from "@/lib/store/Provider";
 import CartInitializer from "@/common/components/cart/CartInitializer";
+import GoogleMapsScript from "@/components/GoogleMapsScript";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReduxProvider>
+          <GoogleMapsScript />
           <CartInitializer />
           <ConditionalLayout>
             {children}

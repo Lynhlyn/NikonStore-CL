@@ -95,7 +95,7 @@ function isHydrateAction(action: Action): action is Action<typeof REHYDRATE> & {
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithInterceptor,
-  tagTypes: ["Auth", "Product", "Category", "Order", "User", "Cart", "Customer", "Banner"],
+  tagTypes: ["Auth", "Product", "Category", "Order", "User", "Cart", "Customer", "Banner", "Address"],
   extractRehydrationInfo(action, { reducerPath }): unknown {
     if (isHydrateAction(action)) {
       if (action.key === "root" && action.payload && Object.prototype.hasOwnProperty.call(action.payload, reducerPath)) {
