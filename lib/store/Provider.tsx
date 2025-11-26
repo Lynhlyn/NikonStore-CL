@@ -21,6 +21,8 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     const customerId = getCustomerIdFromToken()
     if (customerId) {
       dispatch(setCustomerId(customerId))
+    } else {
+      dispatch(setCustomerId(null))
     }
   }, [dispatch])
 

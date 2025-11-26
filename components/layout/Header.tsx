@@ -13,6 +13,9 @@ import { useFetchProductsQuery } from "@/lib/service/modules/productService"
 import { useSelector } from "react-redux"
 import { RootState } from "@/lib/service/store"
 import CartDropdown from "@/common/components/cart/CartDropdown"
+import { useAppDispatch } from "@/lib/hooks/redux"
+import { setCustomerId } from "@/lib/features/appSlice"
+import { persistor } from "@/lib/service/store"
 
 function SearchBar() {
     const router = useRouter()
@@ -205,6 +208,7 @@ export function Header() {
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const categoryHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const dispatch = useAppDispatch()
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken') : null
 
@@ -309,7 +313,9 @@ export function Header() {
             sessionStorage.removeItem('refreshToken')
         }
 
+        dispatch(setCustomerId(null))
         clearAllTokens()
+        await persistor.purge()
         window.location.href = '/login'
     }
 

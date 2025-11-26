@@ -6,6 +6,9 @@ import React, { useState } from 'react'
 import { useLogoutMutation } from '../../../lib/service/modules/authService'
 import { toast } from 'sonner'
 import { tokenManager } from '../../utils/tokenManager'
+import { useAppDispatch } from '../../../lib/hooks/redux'
+import { setCustomerId } from '../../../lib/features/appSlice'
+import { persistor } from '../../../lib/service/store'
 
 interface SidebarProps {
   fullName?: string
@@ -21,6 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage
   const [isLoading, setIsLoading] = useState(false)
   const [logoutMutation] = useLogoutMutation()
   const pathname = usePathname()
+  const dispatch = useAppDispatch()
 
   function confirmToast(message: string): Promise<boolean> {
     return new Promise((resolve) => {
@@ -63,9 +67,15 @@ const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage
     }
   }
 
-  const onClickSuccess = () => {
-    if (!identifier) {
+  const onClickSuccess = async () => {
+    const clearAuthData = async () => {
+      dispatch(setCustomerId(null))
       tokenManager.clearTokens()
+      await persistor.purge()
+    }
+
+    if (!identifier) {
+      await clearAuthData()
       toast.success('Đã đăng xuất!')
       window.location.href = '/'
       return
@@ -74,14 +84,14 @@ const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage
     setIsLoading(true)
     logoutMutation({ identifier })
       .unwrap()
-      .then(() => {
-        tokenManager.clearTokens()
+      .then(async () => {
+        await clearAuthData()
         toast.success('Đăng xuất thành công!')
         window.location.href = '/'
       })
-      .catch((error) => {
+      .catch(async (error) => {
         console.error('Logout failed:', error)
-        tokenManager.clearTokens()
+        await clearAuthData()
         toast.error('Đăng xuất thất bại từ server, nhưng đã xóa dữ liệu local')
         window.location.href = '/'
       })

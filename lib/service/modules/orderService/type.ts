@@ -84,19 +84,20 @@ export interface ShippingFeeRequest {
 }
 
 export interface ShippingFeeResponse {
-  total: number;
-  serviceFee: number;
-  insuranceFee: number;
-  pickStationFee: number;
-  couponValue: number;
-  r2sFee: number;
-  returnAgainFee: number;
-  documentReturn: number;
-  doubleCheck: number;
-  codFee: number;
-  pickRemoteAreasFee: number;
-  deliverRemoteAreasFee: number;
-  codFailedFee: number;
-  error?: string;
+  shippingFee: number;
+  error: string | null;
+  total?: number;
+  serviceFee?: number;
+  insuranceFee?: number;
+  pickStationFee?: number;
+  couponValue?: number;
+  r2sFee?: number;
+  returnAgainFee?: number;
+  documentReturn?: number;
+  doubleCheck?: number;
+  codFee?: number;
+  pickRemoteAreasFee?: number;
+  deliverRemoteAreasFee?: number;
+  codFailedFee?: number;
 }
 

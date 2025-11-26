@@ -97,7 +97,7 @@ export class TokenManager {
       const newAccessToken = data.accessToken
       const newRefreshToken = data.refreshToken
 
-      const isRememberMe = localStorage.getItem("accessToken") !== null
+      const isRememberMe = localStorage.getItem("accessToken") !== null || localStorage.getItem("refreshToken") !== null
       this.setTokens(newAccessToken, newRefreshToken, isRememberMe)
 
       return newAccessToken

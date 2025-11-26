@@ -162,8 +162,12 @@ export default function CheckoutForm() {
         if (feeResponse.error) {
           console.error('Shipping fee error:', feeResponse.error);
           setShippingFee(30000);
+        } else if (feeResponse.shippingFee !== undefined && feeResponse.shippingFee !== null) {
+          setShippingFee(feeResponse.shippingFee);
+        } else if (feeResponse.total !== undefined && feeResponse.total !== null) {
+          setShippingFee(feeResponse.total);
         } else {
-          setShippingFee(feeResponse.shippingFee || 30000);
+          setShippingFee(30000);
         }
       } catch (error) {
         console.error('Error calculating shipping fee:', error);
