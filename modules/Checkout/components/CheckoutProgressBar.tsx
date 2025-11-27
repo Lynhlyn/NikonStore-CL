@@ -19,19 +19,20 @@ export default function CheckoutProgressBar({
   totalSteps = steps.length 
 }: CheckoutProgressBarProps) {
   return (
-    <div className="w-full py-12">
+    <div className="w-full p-6 bg-[#f5f5f5] rounded-2xl">
       <div className="relative">
-        {/* <CHANGE> Improved progress bar design with better visual hierarchy */}
-        {/* Background line connector */}
-        <div className="absolute top-6 left-0 right-0 h-1 bg-gray-200 -z-10">
-          <div
-            className="h-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-500 ease-out"
-            style={{
-              width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%`,
-            }}
-          />
+        
+          {/* Background line connector */}
+          <div className="absolute top-6 left-0 right-0 flex items-center justify-between px-6 z-0">
+          <div className="flex-1 h-1 bg-gray-300 rounded-full mx-6">
+            <div
+              className="h-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-500 ease-out rounded-full"
+              style={{
+                width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%`,
+              }}
+            />
+          </div>
         </div>
-
         {/* Steps container */}
         <div className="flex items-start justify-between gap-2">
           {steps.map((step, index) => {
@@ -51,7 +52,7 @@ export default function CheckoutProgressBar({
                       isCompleted
                         ? 'bg-green-600 text-white shadow-lg shadow-green-600/30 scale-100'
                         : isCurrent
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/40 ring-4 ring-blue-100 scale-110'
+                          ? 'bg-[#ff8600] text-white shadow-lg shadow-blue-600/40 ring-4 ring-blue-100 scale-110'
                           : 'bg-white text-gray-400 border-2 border-gray-300 group-hover:border-gray-400'
                     }`}
                   >
@@ -64,7 +65,7 @@ export default function CheckoutProgressBar({
 
                   {/* Current step indicator pulse */}
                   {isCurrent && (
-                    <div className="absolute inset-0 rounded-full bg-blue-600 animate-pulse opacity-25"></div>
+                    <div className="absolute inset-0 rounded-full bg-[#ff8600] animate-pulse opacity-25"></div>
                   )}
                 </div>
 

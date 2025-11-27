@@ -589,7 +589,7 @@ export default function Step2CustomerInfo({
                       <div className="flex gap-2">
                         <Button
                           variant="default"
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                          className="flex-1 bg-[#ff8600] "
                           onClick={() => setIsEditingAddress(false)}
                         >
                           Xong
@@ -839,7 +839,7 @@ export default function Step2CustomerInfo({
             <div
               className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5 shrink-0 ${
                 formData.paymentMethod === 'cod'
-                  ? 'border-blue-600 bg-blue-600'
+                  ? 'border-blue-600 bg-[#ff8600]'
                   : 'border-gray-300'
               }`}
             >
@@ -993,7 +993,7 @@ export default function Step2CustomerInfo({
         </Button>
         <Button
           onClick={handleNext}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl"
+          className="flex-1 bg-[#ff8600]  text-white font-semibold py-4 rounded-xl"
         >
           Tiếp tục
         </Button>

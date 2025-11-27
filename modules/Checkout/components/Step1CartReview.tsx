@@ -150,7 +150,7 @@ export default function Step1CartReview({
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end justify-between">
+                  <div className="flex flex-col items-end justify-between gap-3">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -230,7 +230,7 @@ export default function Step1CartReview({
 
         <Button
           onClick={handleNext}
-          className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl"
+          className="w-full mt-6 bg-[#ff8600]  text-white font-semibold py-4 rounded-xl"
           disabled={localItems.length === 0}
         >
           Tiếp tục

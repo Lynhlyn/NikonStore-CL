@@ -459,7 +459,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ isCartOpen, setIsCartOpen }
                     <div className="w-8 h-5 bg-red-500 rounded flex items-center justify-center">
                       <span className="text-white text-xs font-bold">M</span>
                     </div>
-                    <div className="w-8 h-5 bg-blue-600 rounded flex items-center justify-center">
+                    <div className="w-8 h-5 bg-[#ff8600] rounded flex items-center justify-center">
                       <span className="text-white text-xs">VISA</span>
                     </div>
                     <div className="w-5 h-5 bg-orange-500 rounded-full"></div>

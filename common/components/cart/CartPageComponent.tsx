@@ -591,7 +591,7 @@ const CartPageComponent: React.FC = () => {
                       <div className="w-10 h-6 bg-red-500 rounded flex items-center justify-center">
                         <span className="text-white text-xs font-bold">M</span>
                       </div>
-                      <div className="w-10 h-6 bg-blue-600 rounded flex items-center justify-center">
+                      <div className="w-10 h-6 bg-[#ff8600] rounded flex items-center justify-center">
                         <span className="text-white text-xs font-bold">
                           VISA
                         </span>

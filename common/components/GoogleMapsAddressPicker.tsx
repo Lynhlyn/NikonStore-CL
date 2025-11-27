@@ -225,7 +225,7 @@ export default function GoogleMapsAddressPicker({
                 onClick={handleParseLink}
                 disabled={isLoading || !mapsLink.trim()}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-[#ff8600] "
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

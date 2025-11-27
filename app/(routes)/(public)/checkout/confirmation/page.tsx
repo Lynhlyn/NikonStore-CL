@@ -188,7 +188,7 @@ export default function OrderConfirmationPage() {
               </button>
               <button
                 onClick={() => router.push(`/orders/${orderData.orderId}`)}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 bg-[#ff8600] text-white font-semibold rounded-xl  transition-colors flex items-center justify-center gap-2"
               >
                 Xem đơn hàng
                 <ArrowRight className="w-5 h-5" />

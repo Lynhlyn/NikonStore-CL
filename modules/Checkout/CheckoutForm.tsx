@@ -521,7 +521,7 @@ export default function CheckoutForm() {
                             <div className="flex gap-2">
                               <Button
                                 variant="default"
-                                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                className="flex-1 bg-[#ff8600] "
                                 onClick={() => setIsEditingAddress(false)}
                               >
                                 Xong
@@ -774,7 +774,7 @@ export default function CheckoutForm() {
                   <div
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0 ${
                       formData.paymentMethod === 'cod'
-                        ? 'border-blue-600 bg-blue-600'
+                        ? 'border-blue-600 bg-[#ff8600]'
                         : 'border-gray-300'
                     }`}
                   >
@@ -882,7 +882,7 @@ export default function CheckoutForm() {
               <button
                 onClick={handlePlaceOrder}
                 disabled={isLoading}
-                className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full mt-6 bg-[#ff8600]  text-white font-semibold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>

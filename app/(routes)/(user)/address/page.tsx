@@ -671,7 +671,7 @@ export default function AddressPage() {
               <h1 className="text-3xl font-bold text-gray-900">Quản lý địa chỉ</h1>
               <p className="text-gray-600 mt-2">Thêm, chỉnh sửa và quản lý địa chỉ giao hàng của bạn</p>
             </div>
-            <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleAddNew} className="bg-[#ff8600] ">
               <Plus className="w-5 h-5 mr-2" />
               Thêm địa chỉ mới
             </Button>
@@ -683,7 +683,7 @@ export default function AddressPage() {
             <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Chưa có địa chỉ nào</h3>
             <p className="text-gray-600 mb-6">Thêm địa chỉ đầu tiên để bắt đầu mua sắm</p>
-            <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleAddNew} className="bg-[#ff8600] ">
               <Plus className="w-5 h-5 mr-2" />
               Thêm địa chỉ mới
             </Button>
@@ -700,7 +700,7 @@ export default function AddressPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-2">
                     {address.isDefault && (
-                      <span className="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded">
+                      <span className="px-2 py-1 bg-[#ff8600] text-white text-xs font-medium rounded">
                         Mặc định
                       </span>
                     )}
