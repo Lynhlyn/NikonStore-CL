@@ -39,13 +39,29 @@ const baseQueryWithInterceptor: BaseQueryFn<string | FetchArgs, unknown, FetchBa
       (args.headers as Record<string, string>)["Content-Type"] = "application/json"
     }
 
-    let result = await baseQuery(args, api, extraOptions)
-
     const isLoginRequest = typeof args === "object" && args.url && args.url.includes("/auth/login")
-    if (result.error?.status === 401 && !isLoginRequest) {
+    const isRefreshRequest = typeof args === "object" && args.url && args.url.includes("/auth/refresh-token")
+    
+    if (!isLoginRequest && !isRefreshRequest) {
+      const validToken = await tokenManager.ensureValidToken()
+      if (validToken && typeof args === "object" && args.headers) {
+        (args.headers as Record<string, string>)["Authorization"] = `Bearer ${validToken}`
+      }
+    }
+
+    let result = await baseQuery(args, api, extraOptions)
+    
+    if (result.error?.status === 401 && !isLoginRequest && !isRefreshRequest) {
       try {
-        await tokenManager.refreshAccessToken()
-        result = await baseQuery(args, api, extraOptions)
+        const newToken = await tokenManager.refreshAccessToken()
+        if (newToken) {
+          if (typeof args === "object" && args.headers) {
+            (args.headers as Record<string, string>)["Authorization"] = `Bearer ${newToken}`
+          }
+          result = await baseQuery(args, api, extraOptions)
+        } else {
+          throw new Error("Failed to refresh token")
+        }
       } catch {
         tokenManager.clearTokens()
         if (typeof window !== "undefined") {

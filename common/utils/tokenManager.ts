@@ -25,15 +25,23 @@ export class TokenManager {
     return localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken")
   }
 
+  public getRememberMe(): boolean {
+    if (typeof window === "undefined") return false
+    
+    return localStorage.getItem("rememberMe") === "true"
+  }
+
   public setTokens(accessToken: string, refreshToken: string, rememberMe: boolean = false): void {
     if (typeof window === "undefined") return
     
     if (rememberMe) {
       localStorage.setItem("accessToken", accessToken)
       localStorage.setItem("refreshToken", refreshToken)
+      localStorage.setItem("rememberMe", "true")
     } else {
       sessionStorage.setItem("accessToken", accessToken)
       sessionStorage.setItem("refreshToken", refreshToken)
+      localStorage.removeItem("rememberMe")
     }
   }
 
@@ -42,6 +50,7 @@ export class TokenManager {
     
     localStorage.removeItem("accessToken")
     localStorage.removeItem("refreshToken")
+    localStorage.removeItem("rememberMe")
     sessionStorage.removeItem("accessToken")
     sessionStorage.removeItem("refreshToken")
   }
@@ -56,6 +65,42 @@ export class TokenManager {
     } catch (error) {
       return true
     }
+  }
+
+  public isTokenExpiringSoon(token: string, bufferMinutes: number = 5): boolean {
+    try {
+      const decoded = decodedTokenInfo(token)
+      if (!decoded || !decoded.exp) return true
+      
+      const now = Math.floor(Date.now() / 1000)
+      const bufferSeconds = bufferMinutes * 60
+      return decoded.exp < (now + bufferSeconds)
+    } catch (error) {
+      return true
+    }
+  }
+
+  public async ensureValidToken(): Promise<string | null> {
+    const accessToken = this.getAccessToken()
+    if (!accessToken) return null
+
+    if (this.isTokenExpired(accessToken)) {
+      try {
+        return await this.refreshAccessToken()
+      } catch (error) {
+        return null
+      }
+    }
+
+    if (this.isTokenExpiringSoon(accessToken, 5)) {
+      try {
+        return await this.refreshAccessToken()
+      } catch (error) {
+        return accessToken
+      }
+    }
+
+    return accessToken
   }
 
   public async refreshAccessToken(): Promise<string> {
@@ -79,35 +124,33 @@ export class TokenManager {
   }
 
   private async performRefresh(refreshToken: string): Promise<string> {
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-      const response = await fetch(`${baseUrl}/api/v1/client/auth/refresh-token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      })
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+    const response = await fetch(`${baseUrl}/api/v1/client/auth/refresh-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
 
-      if (!response.ok) {
-        throw new Error("Failed to refresh token")
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 400) {
+        this.clearTokens()
+        if (typeof window !== "undefined") {
+          window.location.href = "/login"
+        }
       }
-
-      const data = await response.json()
-      const newAccessToken = data.accessToken
-      const newRefreshToken = data.refreshToken
-
-      const isRememberMe = localStorage.getItem("accessToken") !== null || localStorage.getItem("refreshToken") !== null
-      this.setTokens(newAccessToken, newRefreshToken, isRememberMe)
-
-      return newAccessToken
-    } catch (error) {
-      this.clearTokens()
-      if (typeof window !== "undefined") {
-        window.location.href = "/login"
-      }
-      throw error
+      throw new Error(`Failed to refresh token: ${response.status}`)
     }
+
+    const data = await response.json()
+    const newAccessToken = data.accessToken
+    const newRefreshToken = data.refreshToken
+
+    const isRememberMe = this.getRememberMe() || localStorage.getItem("accessToken") !== null || localStorage.getItem("refreshToken") !== null
+    this.setTokens(newAccessToken, newRefreshToken, isRememberMe)
+
+    return newAccessToken
   }
 
   public getUserInfo() {

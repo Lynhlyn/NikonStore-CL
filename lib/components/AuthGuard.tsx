@@ -26,6 +26,22 @@ export function AuthGuard({ children }: AuthGuardProps) {
   })
 
   useEffect(() => {
+    const checkToken = async () => {
+      if (token && !isUserRoute) {
+        const validToken = await tokenManager.ensureValidToken()
+        if (!validToken) {
+          tokenManager.clearTokens()
+          if (pathname) {
+            const returnUrl = encodeURIComponent(pathname)
+            router.replace(`/login?returnUrl=${returnUrl}`)
+          }
+        }
+      }
+    }
+    checkToken()
+  }, [token, isUserRoute, pathname, router])
+
+  useEffect(() => {
     if (!token && isUserRoute) {
       const returnUrl = encodeURIComponent(pathname || '/')
       router.replace(`/login?returnUrl=${returnUrl}`)
