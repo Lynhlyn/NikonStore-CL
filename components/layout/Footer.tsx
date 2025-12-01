@@ -1,5 +1,12 @@
-import Link from "next/link"
-import { Mail, Phone, MapPin, Facebook, Instagram, Youtube } from 'lucide-react'
+import Link from "next/link";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Facebook,
+  Instagram,
+  Youtube,
+} from "lucide-react";
 
 export function Footer() {
   return (
@@ -7,8 +14,12 @@ export function Footer() {
       {/* Newsletter Section */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 md:py-12">
         <div className="bg-gradient-to-r from-[#CC0000] to-[#FF3333] rounded-xl p-6 md:p-10 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-2">Đăng ký nhận thông tin khuyến mãi</h2>
-          <p className="text-sm md:text-base mb-6 opacity-90">Nhận thông tin về sản phẩm mới và ưu đãi đặc biệt!</p>
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">
+            Đăng ký nhận thông tin khuyến mãi
+          </h2>
+          <p className="text-sm md:text-base mb-6 opacity-90">
+            Nhận thông tin về sản phẩm mới và ưu đãi đặc biệt!
+          </p>
           <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             <input
               type="email"
@@ -31,7 +42,9 @@ export function Footer() {
               NIKON STORE
             </div>
             <p className="text-sm text-gray-400 max-w-md leading-relaxed">
-              Đại lý chính thức của Nikon tại Việt Nam - Chúng tôi cam kết cung cấp máy ảnh, ống kính và phụ kiện chính hãng với chất lượng cao nhất và dịch vụ bảo hành uy tín.
+              Đại lý chính thức của Nikon tại Việt Nam - Chúng tôi cam kết cung
+              cấp máy ảnh, ống kính và phụ kiện chính hãng với chất lượng cao
+              nhất và dịch vụ bảo hành uy tín.
             </p>
             <div className="flex flex-col space-y-3 mt-6">
               <div className="flex items-center space-x-3 text-sm text-gray-300">
@@ -48,76 +61,76 @@ export function Footer() {
               </div>
             </div>
             <div className="flex space-x-4 mt-6">
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#FF6B00] transition-colors">
+              <a
+                href="#"
+                className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#FF6B00] transition-colors"
+              >
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#FF6B00] transition-colors">
+              <a
+                href="#"
+                className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#FF6B00] transition-colors"
+              >
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#FF6B00] transition-colors">
+              <a
+                href="#"
+                className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#FF6B00] transition-colors"
+              >
                 <Youtube className="h-5 w-5" />
               </a>
             </div>
           </div>
 
-          {/* Product Categories */}
-          <div className="space-y-4">
-            <h3 className="text-base font-bold uppercase text-[#FF6B00]">SẢN PHẨM</h3>
-            <div className="space-y-2">
-              <Link href="/product?category=dslr" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Máy ảnh DSLR
-              </Link>
-              <Link href="/product?category=mirrorless" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Máy ảnh Mirrorless
-              </Link>
-              <Link href="/product?category=lens" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Ống kính
-              </Link>
-              <Link href="/product?category=accessories" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Phụ kiện
-              </Link>
-              <Link href="/product?category=used" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Máy đã qua sử dụng
-              </Link>
-            </div>
-          </div>
-
           {/* Customer Service */}
           <div className="space-y-4">
-            <h3 className="text-base font-bold uppercase text-[#FF6B00]">HỖ TRỢ</h3>
+            <h3 className="text-base font-bold uppercase text-[#FF6B00]">
+              HỖ TRỢ
+            </h3>
             <div className="space-y-2">
-              <Link href="/order/track" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
+              <Link
+                href="/order/track"
+                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
+              >
                 Tra cứu đơn hàng
               </Link>
-              <Link href="/faq" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
+              <Link
+                href="/faq"
+                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
+              >
                 Câu hỏi thường gặp
               </Link>
-              <Link href="/warranty" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Chính sách bảo hành
+              <Link
+                href="/pages/privacy-policy"
+                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
+              >
+                Chính sách bảo mật
               </Link>
-              <Link href="/shipping" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Chính sách vận chuyển
-              </Link>
-              <Link href="/return" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Chính sách đổi trả
+              <Link
+                href="/pages/terms-of-service"
+                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
+              >
+                Điêu khoản sử dụng
               </Link>
             </div>
           </div>
 
           {/* About */}
           <div className="space-y-4">
-            <h3 className="text-base font-bold uppercase text-[#FF6B00]">VỀ CHÚNG TÔI</h3>
+            <h3 className="text-base font-bold uppercase text-[#FF6B00]">
+              VỀ CHÚNG TÔI
+            </h3>
             <div className="space-y-2">
-              <Link href="/about" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
+              <Link
+                href="/pages/about-us"
+                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
+              >
                 Giới thiệu
               </Link>
-              <Link href="/stores" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Hệ thống cửa hàng
-              </Link>
-              <Link href="/careers" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
-                Tuyển dụng
-              </Link>
-              <Link href="/contact" className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors">
+              <Link
+                href="/contact"
+                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
+              >
                 Liên hệ
               </Link>
             </div>
@@ -128,7 +141,9 @@ export function Footer() {
         <div className="mt-10 pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
-              <h4 className="text-sm font-semibold text-gray-300 mb-3">Phương thức thanh toán</h4>
+              <h4 className="text-sm font-semibold text-gray-300 mb-3">
+                Phương thức thanh toán
+              </h4>
               <div className="flex flex-wrap gap-3">
                 <div className="w-12 h-8 bg-white rounded flex items-center justify-center px-2">
                   <span className="text-xs font-bold text-gray-800">VISA</span>
@@ -145,7 +160,10 @@ export function Footer() {
               </div>
             </div>
             <div className="text-xs text-gray-500 text-center md:text-right">
-              <p>© {new Date().getFullYear()} Nikon Store Vietnam. All Rights Reserved.</p>
+              <p>
+                © {new Date().getFullYear()} Nikon Store Vietnam. All Rights
+                Reserved.
+              </p>
               <p className="mt-1">Giấy phép kinh doanh số: 1234567890</p>
             </div>
           </div>
@@ -154,13 +172,22 @@ export function Footer() {
         {/* Footer Bottom */}
         <div className="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex flex-wrap gap-6 justify-center md:justify-start">
-            <Link href="/privacy" className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors">
+            <Link
+              href="/privacy"
+              className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors"
+            >
               Chính sách bảo mật
             </Link>
-            <Link href="/terms" className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors">
+            <Link
+              href="/terms"
+              className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors"
+            >
               Điều khoản sử dụng
             </Link>
-            <Link href="/about" className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors">
+            <Link
+              href="/about"
+              className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors"
+            >
               Giới thiệu
             </Link>
           </div>
@@ -170,6 +197,5 @@ export function Footer() {
         </div>
       </div>
     </footer>
-  )
+  );
 }
-
