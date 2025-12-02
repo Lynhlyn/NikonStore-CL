@@ -23,6 +23,7 @@ export interface CreateOrderRequest {
 
 export interface OrderDetailResponse {
   orderDetailId: number;
+  productId: number;
   sku: string;
   quantity: number;
   productName: string;

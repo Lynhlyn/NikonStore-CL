@@ -16,6 +16,8 @@ import { useRetryVnpayPayment } from "@/common/hooks/useRetryVnpayPayment"
 import useDebounce from "@/common/hooks/useDebounce"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/shadcn/components/ui/select"
+import { getOrderStatusLabel, getOrderStatusColors } from "@/common/utils/orderStatusMapper"
+import { getPaymentMethodLabel } from "@/common/utils/paymentMethodMapper"
 
 interface OrderListProps {
   onSelectOrder: (orderId: string) => void
@@ -150,26 +152,12 @@ export function OrderList({ onSelectOrder }: OrderListProps) {
   ];
 
   const getStatusBadge = (status: number) => {
-    switch (status) {
-      case 3:
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Chờ xác nhận</Badge>;
-      case 4:
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Đã xác nhận</Badge>;
-      case 5:
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Đang giao</Badge>;
-      case 6:
-        return <Badge className="bg-green-200 text-green-900 hover:bg-green-200">Hoàn thành</Badge>;
-      case 7:
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Đã hủy</Badge>;
-      case 8:
-        return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Chờ thanh toán</Badge>;
-      case 12:
-        return <Badge className="bg-red-200 text-red-900 hover:bg-red-200">Giao hàng thất bại</Badge>;
-      case 13:
-        return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Đang chuẩn bị hàng</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Không xác định</Badge>;
-    }
+    const colors = getOrderStatusColors(status);
+    return (
+      <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-medium px-3 py-1`}>
+        {getOrderStatusLabel(status)}
+      </Badge>
+    );
   };
 
   const handleDateRangeChange = (from: Date | undefined, to: Date | undefined) => {
@@ -261,63 +249,106 @@ export function OrderList({ onSelectOrder }: OrderListProps) {
           </div>
         )}
         
-        {!isLoading && orders.map((order: any) => (
-          <Card key={order.trackingNumber || order.orderId?.toString()} className="p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">Mã đơn: {order.trackingNumber}</span>
-                  {getStatusBadge(order.orderStatus)}
-                </div>
-                <div className="text-sm text-gray-600">
-                  <div>Ngày đặt: {format(new Date(order.orderDate), "dd/MM/yyyy")}</div>
-                  <div>Phương thức thanh toán: {order.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : order.paymentMethod === 'vnpay' ? 'Thanh toán trực tiếp' : order.paymentMethod}</div>
+        {!isLoading && orders.map((order: any) => {
+          const statusColors = getOrderStatusColors(order.orderStatus);
+          return (
+            <Card 
+              key={order.trackingNumber || order.orderId?.toString()} 
+              className={`p-6 border-l-4 ${statusColors.border} hover:shadow-lg transition-shadow`}
+            >
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Mã đơn</span>
+                      <span className="font-bold text-lg text-gray-900">#{order.trackingNumber}</span>
+                    </div>
+                    {getStatusBadge(order.orderStatus)}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">📅 Ngày đặt:</span>
+                      <span className="font-medium">{format(new Date(order.orderDate), "dd/MM/yyyy HH:mm")}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">💳 Thanh toán:</span>
+                      <span className="font-medium">
+                        {getPaymentMethodLabel(order.paymentMethod)}
+                      </span>
+                    </div>
+                  </div>
+
                   {order.orderStatus === 8 && order.remainingPaymentTime > 0 && (
-                    <div className="text-red-600 font-semibold">
-                      Thời gian còn lại để thanh toán: {Math.ceil(order.remainingPaymentTime / 60)} phút
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-red-700">
+                        <span className="text-lg">⏰</span>
+                        <span className="font-semibold">
+                          Thời gian còn lại: {Math.ceil(order.remainingPaymentTime / 60)} phút
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm text-gray-500">Tổng tiền:</span>
+                    <span className="text-2xl font-bold text-gray-900">
+                      {(order.totalAmount + order.shippingFee - order.discount)?.toLocaleString("vi-VN")}₫
+                    </span>
+                  </div>
+
+                  {order.note && (
+                    <div className="bg-amber-50 border-l-4 border-amber-400 rounded p-3">
+                      <div className="flex items-start gap-2">
+                        <span className="text-amber-600 text-lg">📝</span>
+                        <div>
+                          <span className="text-xs font-semibold text-amber-800 uppercase">Ghi chú:</span>
+                          <p className="text-sm text-amber-900 mt-1">{order.note}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-                <div className="text-lg font-semibold">
-                  {(order.totalAmount + order.shippingFee - order.discount)?.toLocaleString("vi-VN")} VND
-                </div>
-                {order.note && (
-                  <div className="text-xs font-semibold text-red-600 bg-yellow-50 border-l-4 border-yellow-400 px-2 py-1 mt-2 rounded">
-                    <span className="mr-1">Ghi chú:</span>{order.note}
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const query = new URLSearchParams({
-                      page: currentPage.toString(),
-                      status: statusFilter,
-                      ...(fromDate && { fromDate: format(fromDate, "yyyy-MM-dd") }),
-                      ...(toDate && { toDate: format(toDate, "yyyy-MM-dd") }),
-                    }).toString();
-                    router.push(`/orders/${order.orderId}?${query}`);
-                  }}
-                >
-                  Xem chi tiết
-                </Button>
-                {order.orderStatus === 3 && (
-                  <Button variant="destructive" onClick={() => handleOpenCancelModal(Number(order.orderId))}>Hủy</Button>
-                )}
-                {order.orderStatus === 8 && order.paymentMethod === 'vnpay' && order.remainingPaymentTime > 0 && (
+
+                <div className="flex flex-col sm:flex-row gap-2 lg:flex-col lg:min-w-[140px]">
                   <Button
-                    variant="default"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => retryVnpayPayment(order.trackingNumber)}
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      const query = new URLSearchParams({
+                        page: currentPage.toString(),
+                        status: statusFilter,
+                        ...(fromDate && { fromDate: format(fromDate, "yyyy-MM-dd") }),
+                        ...(toDate && { toDate: format(toDate, "yyyy-MM-dd") }),
+                      }).toString();
+                      router.push(`/orders/${order.orderId}?${query}`);
+                    }}
                   >
-                    Tiếp tục thanh toán
+                    Xem chi tiết
                   </Button>
-                )}
+                  {order.orderStatus === 3 && (
+                    <Button 
+                      variant="destructive" 
+                      className="w-full"
+                      onClick={() => handleOpenCancelModal(Number(order.orderId))}
+                    >
+                      Hủy đơn
+                    </Button>
+                  )}
+                  {order.orderStatus === 8 && order.paymentMethod === 'vnpay' && order.remainingPaymentTime > 0 && (
+                    <Button
+                      variant="default"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => retryVnpayPayment(order.trackingNumber)}
+                    >
+                      Thanh toán
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
 
       {!isLoading && orders.length > 0 && (

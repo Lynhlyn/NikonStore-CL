@@ -114,6 +114,16 @@ export const orderApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: { data: any }) => response.data,
     }),
+
+    updateOrderStatus: build.mutation<any, { orderId: number; afterStatus: number }>({
+      query: ({ orderId, afterStatus }) => ({
+        url: `${orderEndpoint}/${orderId}/status`,
+        method: 'PUT',
+        body: { afterStatus },
+      }),
+      transformResponse: (response: { data: any }) => response.data,
+      invalidatesTags: ['Order'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -126,4 +136,5 @@ export const {
   useGetOrderByIdQuery,
   useCalculateShippingFeeMutation,
   useCheckOrderStatusQuery,
+  useUpdateOrderStatusMutation,
 } = orderApi;
