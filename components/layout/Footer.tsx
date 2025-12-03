@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   Mail,
@@ -7,8 +9,15 @@ import {
   Instagram,
   Youtube,
 } from "lucide-react";
+import { useGetAllPagesQuery } from "@/lib/service/modules/pageService";
 
 export function Footer() {
+  const { data: pages = [], isError } = useGetAllPagesQuery();
+
+  const pageSlugs = new Set((pages || []).map((page) => page.slug));
+
+  const hasPage = (slug: string) => !isError && pageSlugs.has(slug);
+
   return (
     <footer className="bg-[#1a1a1a] text-white">
       {/* Newsletter Section */}
@@ -95,23 +104,27 @@ export function Footer() {
                 Tra cứu đơn hàng
               </Link>
               <Link
-                href="/faq"
+                href="/faqs"
                 className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
               >
                 Câu hỏi thường gặp
               </Link>
-              <Link
-                href="/pages/privacy-policy"
-                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
-              >
-                Chính sách bảo mật
-              </Link>
-              <Link
-                href="/pages/terms-of-service"
-                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
-              >
-                Điêu khoản sử dụng
-              </Link>
+              {hasPage("privacy-policy") && (
+                <Link
+                  href="/pages/privacy-policy"
+                  className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
+                >
+                  Chính sách bảo mật
+                </Link>
+              )}
+              {hasPage("terms-of-service") && (
+                <Link
+                  href="/pages/terms-of-service"
+                  className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
+                >
+                  Điều khoản sử dụng
+                </Link>
+              )}
             </div>
           </div>
 
@@ -121,50 +134,14 @@ export function Footer() {
               VỀ CHÚNG TÔI
             </h3>
             <div className="space-y-2">
-              <Link
-                href="/pages/about-us"
-                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
-              >
-                Giới thiệu
-              </Link>
-              <Link
-                href="/contact"
-                className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
-              >
-                Liên hệ
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Payment Methods */}
-        <div className="mt-10 pt-8 border-t border-gray-800">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div>
-              <h4 className="text-sm font-semibold text-gray-300 mb-3">
-                Phương thức thanh toán
-              </h4>
-              <div className="flex flex-wrap gap-3">
-                <div className="w-12 h-8 bg-white rounded flex items-center justify-center px-2">
-                  <span className="text-xs font-bold text-gray-800">VISA</span>
-                </div>
-                <div className="w-12 h-8 bg-white rounded flex items-center justify-center px-2">
-                  <span className="text-xs font-bold text-gray-800">MC</span>
-                </div>
-                <div className="w-12 h-8 bg-white rounded flex items-center justify-center px-2">
-                  <span className="text-xs font-bold text-gray-800">MOMO</span>
-                </div>
-                <div className="w-12 h-8 bg-white rounded flex items-center justify-center px-2">
-                  <span className="text-xs font-bold text-gray-800">ZALO</span>
-                </div>
-              </div>
-            </div>
-            <div className="text-xs text-gray-500 text-center md:text-right">
-              <p>
-                © {new Date().getFullYear()} Nikon Store Vietnam. All Rights
-                Reserved.
-              </p>
-              <p className="mt-1">Giấy phép kinh doanh số: 1234567890</p>
+              {hasPage("about-us") && (
+                <Link
+                  href="/pages/about-us"
+                  className="block text-sm text-gray-400 hover:text-[#FF6B00] transition-colors"
+                >
+                  Giới thiệu
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -172,27 +149,30 @@ export function Footer() {
         {/* Footer Bottom */}
         <div className="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex flex-wrap gap-6 justify-center md:justify-start">
-            <Link
-              href="/privacy"
-              className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors"
-            >
-              Chính sách bảo mật
-            </Link>
-            <Link
-              href="/terms"
-              className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors"
-            >
-              Điều khoản sử dụng
-            </Link>
-            <Link
-              href="/about"
-              className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors"
-            >
-              Giới thiệu
-            </Link>
-          </div>
-          <div className="text-xs text-gray-500">
-            Made with ❤️ for photographers
+            {hasPage("privacy-policy") && (
+              <Link
+                href="/pages/privacy-policy"
+                className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors"
+              >
+                Chính sách bảo mật
+              </Link>
+            )}
+            {hasPage("terms-of-service") && (
+              <Link
+                href="/pages/terms-of-service"
+                className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors"
+              >
+                Điều khoản sử dụng
+              </Link>
+            )}
+            {hasPage("about-us") && (
+              <Link
+                href="/pages/about-us"
+                className="text-xs text-gray-500 hover:text-[#FF6B00] transition-colors"
+              >
+                Giới thiệu
+              </Link>
+            )}
           </div>
         </div>
       </div>

@@ -6,6 +6,8 @@ import FeaturedProductsSection from "@/components/home/FeaturedProductsSection"
 import NewProductsSection from "@/components/home/NewProductsSection"
 import PromotionProductsSection from "@/components/home/PromotionProductsSection"
 import BrandsSection from "@/components/home/BrandsSection"
+import LatestFAQsSection from "@/components/home/LatestFAQsSection"
+import LatestBlogsSection from "@/components/home/LatestBlogsSection"
 import CTASection from "@/components/home/CTASection"
 
 export default function Home() {
@@ -20,6 +22,10 @@ export default function Home() {
       <PromotionProductsSection />
       
       <NewProductsSection />
+      
+      <LatestFAQsSection />
+      
+      <LatestBlogsSection />
       
       <BrandsSection />
       

@@ -173,11 +173,11 @@ function LoginForm() {
         {/* Footer Text */}
         <p className="mt-6 text-center text-sm text-white/90">
           Bằng việc đăng nhập, bạn đồng ý với{" "}
-          <Link href="/terms" className="underline hover:text-white">
+          <Link href="/pages/terms-of-service" className="underline hover:text-white">
             Điều khoản sử dụng
           </Link>{" "}
           và{" "}
-          <Link href="/privacy" className="underline hover:text-white">
+          <Link href="/pages/privacy-policy" className="underline hover:text-white">
             Chính sách bảo mật
           </Link>
         </p>

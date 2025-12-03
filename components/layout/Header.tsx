@@ -242,8 +242,9 @@ export function Header() {
                 children: categoryChildren,
             },
             { label: "Khuyến mãi", href: "/vouchers" },
+            { label: "Blog", href: "/blogs" },
             { label: "Về chúng tôi", href: "/about" },
-            { label: "Hỗ trợ", href: "/faq" },
+            { label: "Hỗ trợ", href: "/faqs" },
             ...(!token ? [{ label: "Tra cứu đơn hàng", href: "/order/track" }] : []),
         ]
     }, [categoriesData, token])
