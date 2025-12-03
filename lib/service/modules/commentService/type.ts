@@ -7,6 +7,14 @@ export interface Comment {
     fullName: string;
     email: string;
   };
+  staff?: {
+    id: number;
+    username: string;
+    fullName: string;
+    email: string;
+    phoneNumber?: string;
+    role?: string;
+  };
   userComment?: string;
   content: string;
   parentId?: number;

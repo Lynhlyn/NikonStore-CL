@@ -19,7 +19,6 @@ interface CommentItemProps {
 
 const CommentItem = ({ comment, level = 0 }: CommentItemProps) => {
   const hasReplies = comment.replies && comment.replies.length > 0;
-  const marginLeft = level * 24;
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
@@ -32,17 +31,40 @@ const CommentItem = ({ comment, level = 0 }: CommentItemProps) => {
     });
   };
 
+  const getDisplayName = () => {
+    if (comment.staff) {
+      return comment.staff.fullName || comment.staff.username;
+    }
+    if (comment.customer) {
+      return comment.customer.fullName || comment.customer.username;
+    }
+    return comment.userComment || 'Khách vãng lai';
+  };
+
+  const getBadgeClassName = () => {
+    if (comment.staff) {
+      return 'bg-green-100 border-green-300 text-green-800';
+    }
+    if (comment.customer) {
+      return 'bg-blue-100 border-blue-300 text-blue-800';
+    }
+    return 'bg-gray-100 border-gray-300 text-gray-800';
+  };
+
   return (
     <div className={`${level > 0 ? 'ml-8 border-l-2 border-gray-200 pl-4' : ''}`}>
       <div className="bg-gray-50 p-4 rounded-lg mb-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${
+            comment.staff ? 'bg-green-500' : 'bg-blue-500'
+          }`}>
             <User className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-semibold">
-                {comment.customer?.fullName || comment.userComment || 'Khách vãng lai'}
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-medium ${getBadgeClassName()}`}>
+                <User className="h-3 w-3" />
+                {getDisplayName()}
               </span>
               <span className="text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
             </div>
