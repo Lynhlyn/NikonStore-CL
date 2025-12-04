@@ -49,6 +49,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     if (pathname.includes('/profile')) return 'Thông tin cá nhân'
     if (pathname.includes('/address')) return 'Địa chỉ giao hàng'
     if (pathname.includes('/orders')) return 'Đơn hàng của tôi'
+    if (pathname.includes('/sessions')) return 'Quản lý phiên đăng nhập'
     return 'Tài khoản'
   }
 

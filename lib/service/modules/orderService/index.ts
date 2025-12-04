@@ -124,6 +124,41 @@ export const orderApi = apiSlice.injectEndpoints({
       transformResponse: (response: { data: any }) => response.data,
       invalidatesTags: ['Order'],
     }),
+
+    sendOrderVerificationEmail: build.mutation<
+      { message: string },
+      { email: string; customerName: string }
+    >({
+      query: (body) => ({
+        url: `${orderEndpoint}/send-verification-email`,
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    verifyOrderEmail: build.mutation<
+      { success: boolean; error?: string },
+      { token: string; email: string }
+    >({
+      query: (body) => ({
+        url: `${orderEndpoint}/verify-order-email`,
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: { data: { success: boolean; error?: string } }) =>
+        response.data,
+    }),
+
+    sendTrackingVerificationEmail: build.mutation<
+      { message: string },
+      { trackingNumber: string; email: string }
+    >({
+      query: ({ trackingNumber, email }) => ({
+        url: `${orderEndpoint}/tracking/send-verification-email`,
+        method: 'POST',
+        params: { trackingNumber, email },
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -137,4 +172,7 @@ export const {
   useCalculateShippingFeeMutation,
   useCheckOrderStatusQuery,
   useUpdateOrderStatusMutation,
+  useSendOrderVerificationEmailMutation,
+  useVerifyOrderEmailMutation,
+  useSendTrackingVerificationEmailMutation,
 } = orderApi;

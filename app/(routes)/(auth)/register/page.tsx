@@ -7,6 +7,7 @@ import { useRegisterMutation } from "@/lib/service/modules/authService"
 import { PasswordInput } from "@/components/auth/PasswordInput"
 import { toast } from "sonner"
 import Loader from "@/components/common/Loader"
+import { genderMapper } from "@/lib/utils"
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("")
@@ -45,7 +46,7 @@ export default function RegisterPage() {
         fullName,
         phoneNumber,
         dateOfBirth: dateOfBirth || undefined,
-        gender: gender || undefined,
+        gender: gender ? genderMapper.toEnglish(gender) : undefined,
         isGuest: false,
         status: "ACTIVE",
       }).unwrap()
@@ -195,9 +196,9 @@ export default function RegisterPage() {
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent transition-all duration-200 text-sm"
                 >
                   <option value="">Chọn giới tính</option>
-                  <option value="Male">Nam</option>
-                  <option value="Female">Nữ</option>
-                  <option value="Other">Khác</option>
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                  <option value="Khác">Khác</option>
                 </select>
               </div>
             </div>

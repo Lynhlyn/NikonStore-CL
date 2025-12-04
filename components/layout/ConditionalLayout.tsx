@@ -14,7 +14,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname()
   
   // Check if we're in user routes or order confirmation
-  const isUserRoute = pathname.startsWith('/profile') || pathname.startsWith('/address') || pathname.startsWith('/order/confirmation') || pathname.startsWith('/orders')
+  const isUserRoute = pathname.startsWith('/profile') || pathname.startsWith('/address') || pathname.startsWith('/order/confirmation') || pathname.startsWith('/orders') || pathname.startsWith('/sessions')
   
   return (
     <div className="min-h-screen flex flex-col">

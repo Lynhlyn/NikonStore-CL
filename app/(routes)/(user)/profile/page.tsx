@@ -223,6 +223,31 @@ const ProfilePage = () => {
           errorMessage.includes('oldPassword') ||
           errorMessage.includes('Incorrect old password')) {
         setPasswordErrors({ currentPassword: 'Mật khẩu hiện tại không chính xác' })
+      } else if (errorMessage.includes('Mật khẩu xác nhận không khớp') ||
+                 errorMessage.includes('Confirm password does not match') ||
+                 errorMessage.includes('does not match')) {
+        setPasswordErrors({ confirmNewPassword: 'Mật khẩu xác nhận không khớp' })
+      } else if (errorMessage.includes('Mật khẩu mới phải khác mật khẩu hiện tại') ||
+                 errorMessage.includes('New password must be different') ||
+                 errorMessage.includes('must be different')) {
+        setPasswordErrors({ newPassword: 'Mật khẩu mới phải khác mật khẩu hiện tại' })
+      } else if (errorMessage.includes('Mật khẩu phải có từ 8-32 ký tự') ||
+                 errorMessage.includes('Password must be between 8-32') ||
+                 errorMessage.includes('between 8-32')) {
+        setPasswordErrors({ newPassword: 'Mật khẩu phải có từ 8-32 ký tự' })
+      } else if (errorMessage.includes('Mật khẩu phải chứa ít nhất 1 chữ cái và 1 chữ số') ||
+                 errorMessage.includes('Password must contain at least 1 letter') ||
+                 errorMessage.includes('at least 1 letter')) {
+        setPasswordErrors({ newPassword: 'Mật khẩu phải chứa ít nhất 1 chữ cái và 1 chữ số' })
+      } else if (errorMessage.includes('Mật khẩu hiện tại không được để trống') ||
+                 errorMessage.includes('Current password is required')) {
+        setPasswordErrors({ currentPassword: 'Mật khẩu hiện tại không được để trống' })
+      } else if (errorMessage.includes('Mật khẩu mới không được để trống') ||
+                 errorMessage.includes('New password is required')) {
+        setPasswordErrors({ newPassword: 'Mật khẩu mới không được để trống' })
+      } else if (errorMessage.includes('Xác nhận mật khẩu không được để trống') ||
+                 errorMessage.includes('Confirm password is required')) {
+        setPasswordErrors({ confirmNewPassword: 'Xác nhận mật khẩu không được để trống' })
       } else if (errorMessage.includes('Token không hợp lệ') || 
                 errorMessage.includes('Invalid token') ||
                 errorMessage.includes('Unauthorized') ||
@@ -231,7 +256,11 @@ const ProfilePage = () => {
       } else if (err?.status === 500) {
         toast.error('Lỗi server, vui lòng thử lại sau')
       } else if (err?.status === 400) {
-        toast.error('Dữ liệu không hợp lệ')
+        if (err?.data?.data && typeof err.data.data === 'object') {
+          setPasswordErrors(err.data.data as Record<string, string>)
+        } else {
+          toast.error('Dữ liệu không hợp lệ')
+        }
       } else {
         toast.error(errorMessage)
       }

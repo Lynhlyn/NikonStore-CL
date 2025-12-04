@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useDeleteCustomerAccountMutation } from '../../../lib/service/modules/customerService'
 import { toast } from 'sonner'
 import { tokenManager } from '../../utils/tokenManager'
+import { genderMapper } from '../../../lib/utils'
 
 interface ProfileFormProps {
   user: any
@@ -24,8 +25,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   errors = {},
   onClearFieldError,
 }) => {
-  const { username, email, fullName, phoneNumber, urlImage, dateOfBirth, gender } = user?.data || {}
+  const { username, email, fullName, phoneNumber, urlImage, dateOfBirth, gender: genderFromBackend } = user?.data || {}
   const displayErrors = { ...errors }
+  const gender = genderMapper.toVietnamese(genderFromBackend)
 
   const [showConfirm, setShowConfirm] = useState(false)
   const [pendingEvent, setPendingEvent] = useState<React.FormEvent | null>(null)
@@ -131,10 +133,22 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name } = e.target
+    const { name, value } = e.target
     if (name === 'phoneNumber') {
       let val = e.target.value.replace(/\D/g, '').slice(0, 10)
       e.target.value = val
+    }
+    if (name === 'gender') {
+      const englishGender = genderMapper.toEnglish(value)
+      const syntheticEvent = {
+        ...e,
+        target: {
+          ...e.target,
+          value: englishGender,
+        },
+      } as React.ChangeEvent<HTMLInputElement>
+      onChange(syntheticEvent)
+      return
     }
     if (localErrors[name]) {
       setLocalErrors(prev => {

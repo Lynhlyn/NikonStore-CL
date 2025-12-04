@@ -9,6 +9,8 @@ import {
   useCreateOrderMutation,
   useCalculateShippingFeeMutation,
 } from '@/lib/service/modules/orderService';
+import { useEmailVerification } from '@/common/hooks/useEmailVerification';
+import EmailVerificationModal from '@/common/components/EmailVerificationModal/EmailVerificationModal';
 import type { CreateOrderRequest } from '@/lib/service/modules/orderService/type';
 import { getCookie } from '@/common/utils/cartUtils';
 import {
@@ -51,8 +53,12 @@ export default function CheckoutForm() {
   const { customerId } = useAuth();
   const [createOrder, { isLoading }] = useCreateOrderMutation();
   const [calculateShippingFee] = useCalculateShippingFeeMutation();
+  const { sendVerificationEmail } = useEmailVerification();
   const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([]);
   const [checkoutTotal, setCheckoutTotal] = useState(0);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [pendingOrderData, setPendingOrderData] = useState<CreateOrderRequest | null>(null);
 
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
@@ -340,38 +346,58 @@ export default function CheckoutForm() {
       return;
     }
 
+    const email = customerId ? customerData?.data?.email || formData.recipientEmail : formData.recipientEmail;
+    const customerName = formData.recipientName;
+
+    const shippingAddress = [
+      formData.detailedAddress,
+      selectedWard?.name,
+      selectedDistrict?.name,
+      selectedProvince?.name,
+    ]
+      .filter(Boolean)
+      .join(', ');
+
+    const orderData: CreateOrderRequest = {
+      customerId: customerId || null,
+      cookieId: customerId ? null : getCookie('cookieId') || null,
+      cartItems: checkoutItems.map((item) => ({
+        cartdetailId: item.cartDetailId,
+        quantity: item.quantity,
+      })),
+      shippingAddress,
+      paymentMethod: formData.paymentMethod.toUpperCase(),
+      voucherId: null,
+      discount: null,
+      notes: formData.notes || null,
+      recipientName: formData.recipientName,
+      recipientPhone: formData.recipientPhone,
+      recipientEmail: formData.recipientEmail,
+      shippingFee: shippingFee,
+      orderType: 'ONLINE',
+      toDistrictId: formData.districtId || undefined,
+      toWardCode: formData.wardCode || undefined,
+    };
+
+    setPendingOrderData(orderData);
+    setVerificationEmail(email);
+
     try {
-      const shippingAddress = [
-        formData.detailedAddress,
-        selectedWard?.name,
-        selectedDistrict?.name,
-        selectedProvince?.name,
-      ]
-        .filter(Boolean)
-        .join(', ');
+      await sendVerificationEmail({
+        email,
+        customerName,
+      });
+      setShowVerificationModal(true);
+    } catch (error: any) {
+      toast.error('Không thể gửi email xác thực. Vui lòng thử lại.');
+    }
+  };
 
-      const orderData: CreateOrderRequest = {
-        customerId: customerId || null,
-        cookieId: customerId ? null : getCookie('cookieId') || null,
-        cartItems: checkoutItems.map((item) => ({
-          cartdetailId: item.cartDetailId,
-          quantity: item.quantity,
-        })),
-        shippingAddress,
-        paymentMethod: formData.paymentMethod.toUpperCase(),
-        voucherId: null,
-        discount: null,
-        notes: formData.notes || null,
-        recipientName: formData.recipientName,
-        recipientPhone: formData.recipientPhone,
-        recipientEmail: formData.recipientEmail,
-        shippingFee: shippingFee,
-        orderType: 'ONLINE',
-        toDistrictId: formData.districtId || undefined,
-        toWardCode: formData.wardCode || undefined,
-      };
+  const handleVerificationSuccess = async () => {
+    if (!pendingOrderData) return;
 
-      const order = await createOrder(orderData).unwrap();
+    try {
+      const order = await createOrder(pendingOrderData).unwrap();
 
       localStorage.setItem('orderData', JSON.stringify(order));
       localStorage.removeItem('checkoutItems');
@@ -905,6 +931,14 @@ export default function CheckoutForm() {
           </div>
         </div>
       </div>
+
+      <EmailVerificationModal
+        isOpen={showVerificationModal}
+        email={verificationEmail}
+        customerName={formData.recipientName}
+        onClose={() => setShowVerificationModal(false)}
+        onVerificationSuccess={handleVerificationSuccess}
+      />
     </div>
   );
 }

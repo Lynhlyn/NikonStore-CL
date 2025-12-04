@@ -16,6 +16,7 @@ import CartDropdown from "@/common/components/cart/CartDropdown"
 import { useAppDispatch } from "@/lib/hooks/redux"
 import { setCustomerId } from "@/lib/features/appSlice"
 import { persistor } from "@/lib/service/store"
+import ConfirmDialog from "@/components/ui/ConfirmDialog"
 
 function SearchBar() {
     const router = useRouter()
@@ -206,6 +207,8 @@ export function Header() {
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
     const headerRef = useRef<HTMLDivElement>(null)
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const categoryHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const dispatch = useAppDispatch()
@@ -245,7 +248,7 @@ export function Header() {
             { label: "Blog", href: "/blogs" },
             { label: "Về chúng tôi", href: "/about" },
             { label: "Hỗ trợ", href: "/faqs" },
-            ...(!token ? [{ label: "Tra cứu đơn hàng", href: "/order/track" }] : []),
+            { label: "Tra cứu đơn hàng", href: "/order/track" },
         ]
     }, [categoriesData, token])
 
@@ -306,7 +309,11 @@ export function Header() {
         setActiveDropdown(activeDropdown === label ? null : label)
     }
 
-    const handleLogout = async () => {
+    const handleLogout = () => {
+        setShowLogoutConfirm(true)
+    }
+
+    const handleConfirmLogout = async () => {
         const clearAllTokens = () => {
             localStorage.removeItem('accessToken')
             localStorage.removeItem('refreshToken')
@@ -314,10 +321,15 @@ export function Header() {
             sessionStorage.removeItem('refreshToken')
         }
 
+        setIsLoggingOut(true)
         dispatch(setCustomerId(null))
         clearAllTokens()
         await persistor.purge()
         window.location.href = '/login'
+    }
+
+    const handleCancelLogout = () => {
+        setShowLogoutConfirm(false)
     }
 
     const toggleUserDropdown = () => {
@@ -438,7 +450,8 @@ export function Header() {
                                                     alt={userData.data.fullName || 'User'}
                                                     width={32}
                                                     height={32}
-                                                    className="w-full h-full object-cover"
+                                                    className="w-full h-full object-cover rounded-full"
+                                                    unoptimized
                                                 />
                                             ) : (
                                                 <User className="h-5 w-5 text-white" />
@@ -451,13 +464,29 @@ export function Header() {
                                     </button>
                                     {isUserDropdownOpen && (
                                         <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border border-gray-200 z-50">
-                                            <div className="px-4 py-3 border-b border-gray-100">
-                                                <p className="text-sm font-medium text-gray-900">
-                                                    {userData?.data?.fullName || userData?.data?.username || 'Tài khoản'}
-                                                </p>
-                                                <p className="text-xs text-gray-500">
-                                                    {userData?.data?.email}
-                                                </p>
+                                            <div className="px-4 py-3 border-b border-gray-100 flex items-center space-x-3">
+                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                    {userData?.data?.urlImage ? (
+                                                        <Image
+                                                            src={userData.data.urlImage}
+                                                            alt={userData.data.fullName || 'User'}
+                                                            width={40}
+                                                            height={40}
+                                                            className="w-full h-full object-cover rounded-full"
+                                                            unoptimized
+                                                        />
+                                                    ) : (
+                                                        <User className="h-6 w-6 text-gray-500" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                                        {userData?.data?.fullName || userData?.data?.username || 'Tài khoản'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 truncate">
+                                                        {userData?.data?.email}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <Link
                                                 href="/profile"
@@ -611,7 +640,8 @@ export function Header() {
                                                     alt={userData.data.fullName || 'User'}
                                                     width={40}
                                                     height={40}
-                                                    className="w-full h-full object-cover"
+                                                    className="w-full h-full object-cover rounded-full"
+                                                    unoptimized
                                                 />
                                             ) : (
                                                 <User className="h-6 w-6 text-gray-500" />
@@ -658,6 +688,18 @@ export function Header() {
                     </div>
                 </div>
             </div>
+
+            <ConfirmDialog
+                isOpen={showLogoutConfirm}
+                title="Xác nhận đăng xuất"
+                message="Bạn có chắc chắn muốn đăng xuất?"
+                confirmText="Đăng xuất"
+                cancelText="Hủy"
+                onConfirm={handleConfirmLogout}
+                onCancel={handleCancelLogout}
+                isLoading={isLoggingOut}
+                variant="danger"
+            />
         </header>
     )
 }

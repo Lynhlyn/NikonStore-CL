@@ -9,6 +9,7 @@ import { tokenManager } from '../../utils/tokenManager'
 import { useAppDispatch } from '../../../lib/hooks/redux'
 import { setCustomerId } from '../../../lib/features/appSlice'
 import { persistor } from '../../../lib/service/store'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 interface SidebarProps {
   fullName?: string
@@ -22,52 +23,16 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage, userId, onNavigation, isMobileFullScreen = false }) => {
   const [isLoading, setIsLoading] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [logoutMutation] = useLogoutMutation()
   const pathname = usePathname()
   const dispatch = useAppDispatch()
 
-  function confirmToast(message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      const id = toast(
-        <div className="flex flex-col gap-4">
-          <span>{message}</span>
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => {
-                resolve(true)
-                toast.dismiss(id)
-              }}
-              className="text-green-600 hover:underline"
-            >
-              Đồng ý
-            </button>
-            <button
-              onClick={() => {
-                resolve(false)
-                toast.dismiss(id)
-              }}
-              className="text-red-600 hover:underline"
-            >
-              Hủy
-            </button>
-          </div>
-        </div>,
-        {
-          duration: Infinity,
-          closeButton: false,
-        }
-      )
-    })
+  const onClickLogout = () => {
+    setShowLogoutConfirm(true)
   }
 
-  const onClickLogout = async () => {
-    const confirmed = await confirmToast('Bạn có chắc chắn muốn đăng xuất?')
-    if (confirmed) {
-      onClickSuccess()
-    }
-  }
-
-  const onClickSuccess = async () => {
+  const handleConfirmLogout = async () => {
     const clearAuthData = async () => {
       dispatch(setCustomerId(null))
       tokenManager.clearTokens()
@@ -97,7 +62,12 @@ const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage
       })
       .finally(() => {
         setIsLoading(false)
+        setShowLogoutConfirm(false)
       })
+  }
+
+  const handleCancelLogout = () => {
+    setShowLogoutConfirm(false)
   }
 
   const handleNavigation = (callback?: () => void) => {
@@ -201,6 +171,21 @@ const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage
             </svg>
             Đơn hàng của tôi
           </Link>
+
+          <Link 
+            href="/sessions" 
+            className={`flex items-center px-4 py-4 lg:px-3 lg:py-2 text-base lg:text-sm rounded-lg lg:rounded-md transition-colors ${
+              pathname === '/sessions' || pathname.startsWith('/sessions')
+                ? 'text-[#FF6B00] bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+            onClick={() => handleNavigation()}
+          >
+            <svg className="w-6 h-6 lg:w-4 lg:h-4 mr-4 lg:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Quản lý phiên đăng nhập
+          </Link>
         </nav>
 
         <div className="mt-auto pt-6 border-t border-gray-200 lg:border-t lg:pt-4">
@@ -220,6 +205,18 @@ const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        title="Xác nhận đăng xuất"
+        message="Bạn có chắc chắn muốn đăng xuất?"
+        confirmText="Đăng xuất"
+        cancelText="Hủy"
+        onConfirm={handleConfirmLogout}
+        onCancel={handleCancelLogout}
+        isLoading={isLoading}
+        variant="danger"
+      />
     </div>
   )
 }

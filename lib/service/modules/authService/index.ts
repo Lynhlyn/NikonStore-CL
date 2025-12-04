@@ -6,6 +6,7 @@ import {
   CustomerResponse, 
   ErrorResponse, 
   LoginRequest,
+  SessionResponse,
 } from "./type"
 
 const auth = "/auth"
@@ -16,6 +17,8 @@ export const api = {
   logout: `${auth}/logout`,
   refreshToken: `${auth}/refresh-token`,
   validate: `${auth}/validate`,
+  getSessions: `${auth}/sessions`,
+  revokeSession: `${auth}/sessions`,
 }
 
 export const authApi = apiSlice.injectEndpoints({
@@ -84,6 +87,19 @@ export const authApi = apiSlice.injectEndpoints({
         method: "GET",
       }),
     }),
+    getSessions: build.query<SessionResponse[], { refreshToken: string }>({
+      query: (body) => ({
+        url: api.getSessions,
+        method: "POST",
+        body: { refreshToken: body.refreshToken },
+      }),
+    }),
+    revokeSession: build.mutation<{ message: string }, { tokenId: number }>({
+      query: ({ tokenId }) => ({
+        url: `${api.revokeSession}/${tokenId}`,
+        method: "DELETE",
+      }),
+    }),
   }),
 })
 
@@ -93,4 +109,6 @@ export const {
   useLogoutMutation,
   useRefreshTokenMutation,
   useValidateTokenQuery,
+  useGetSessionsQuery,
+  useRevokeSessionMutation,
 } = authApi

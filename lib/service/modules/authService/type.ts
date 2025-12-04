@@ -58,3 +58,13 @@ export interface ErrorResponse {
   }
 }
 
+export interface SessionResponse {
+  tokenId: number
+  createdAt: string
+  isCurrent: boolean
+  deviceName: string | null
+  browserName: string | null
+  deviceType: string | null
+  ipAddress: string | null
+}
+

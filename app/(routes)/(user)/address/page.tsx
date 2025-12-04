@@ -29,11 +29,10 @@ import {
   DialogTrigger,
 } from '@/src/components/ui/dialog';
 import { Button } from '@/core/shadcn/components/ui/button';
-import { Plus, MapPin, Edit2, Trash2, Star, X, Navigation } from 'lucide-react';
+import { Plus, MapPin, Edit2, Trash2, Star, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Address, CreateAddressRequest, UpdateAddressRequest } from '@/lib/service/modules/addressService/type';
 import Loader from '@/components/common/Loader';
-import GoogleMapsAddressPicker from '@/common/components/GoogleMapsAddressPicker';
 
 interface AddressModalProps {
   isOpen: boolean;
@@ -58,7 +57,6 @@ const AddressModal = ({ isOpen, onClose, address, customerId, onSuccess }: Addre
   const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
   const [selectedWardCode, setSelectedWardCode] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showGoogleMapsPicker, setShowGoogleMapsPicker] = useState(false);
 
   const [createAddress, { isLoading: isCreating }] = useCreateAddressMutation();
   const [updateAddress, { isLoading: isUpdating }] = useUpdateAddressMutation();
@@ -142,134 +140,6 @@ const AddressModal = ({ isOpen, onClose, address, customerId, onSuccess }: Addre
       if (ward) setSelectedWardCode(ward.value);
     }
   }, [selectedDistrictId, wards, formData.ward]);
-
-  // Helper functions to match Google Maps addresses with GHN data
-  const normalizeString = (str: string) => {
-    return str
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D')
-      .trim();
-  };
-
-  const matchAndSetProvince = (provinceName: string) => {
-    if (!provinceName || provinces.length === 0) {
-      console.log('Cannot match province:', { provinceName, provincesLength: provinces.length });
-      return;
-    }
-
-    const normalizedSearch = normalizeString(provinceName);
-    console.log('Matching province:', { provinceName, normalizedSearch, provincesCount: provinces.length });
-    
-    // Try exact match first
-    let matchedProvince = provinces.find((p) => normalizeString(p.name) === normalizedSearch);
-
-    // Try partial match
-    if (!matchedProvince) {
-      matchedProvince = provinces.find((p) => {
-        const normalized = normalizeString(p.name);
-        return normalized.includes(normalizedSearch) || normalizedSearch.includes(normalized);
-      });
-    }
-
-    // Try removing common prefixes/suffixes
-    if (!matchedProvince) {
-      const cleaned = normalizedSearch.replace(/\s*(tỉnh|thành phố|tp\.?|province)\s*/gi, '').trim();
-      matchedProvince = provinces.find((p) => {
-        const normalized = normalizeString(p.name);
-        const cleanedProvince = normalized.replace(/\s*(tỉnh|thành phố|tp\.?)\s*/gi, '').trim();
-        return cleanedProvince === cleaned || cleanedProvince.includes(cleaned) || cleaned.includes(cleanedProvince);
-      });
-    }
-
-    if (matchedProvince) {
-      console.log('Matched province:', matchedProvince.name);
-      setSelectedProvinceId(matchedProvince.value);
-      setFormData((prev) => ({ ...prev, province: matchedProvince.name }));
-      toast.success(`Đã chọn tỉnh/thành: ${matchedProvince.name}`);
-    } else {
-      console.log('No province match found');
-      toast.warning(`Không tìm thấy tỉnh/thành phố: ${provinceName}`);
-    }
-  };
-
-  const matchAndSetDistrict = (districtName: string) => {
-    if (!districtName || districts.length === 0) {
-      console.log('Cannot match district:', { districtName, districtsLength: districts.length });
-      return;
-    }
-
-    const normalizedSearch = normalizeString(districtName);
-    console.log('Matching district:', { districtName, normalizedSearch, districtsCount: districts.length });
-    
-    let matchedDistrict = districts.find((d) => normalizeString(d.name) === normalizedSearch);
-
-    if (!matchedDistrict) {
-      matchedDistrict = districts.find((d) => {
-        const normalized = normalizeString(d.name);
-        return normalized.includes(normalizedSearch) || normalizedSearch.includes(normalized);
-      });
-    }
-
-    if (!matchedDistrict) {
-      const cleaned = normalizedSearch.replace(/\s*(quận|huyện|thị xã|thành phố|district)\s*/gi, '').trim();
-      matchedDistrict = districts.find((d) => {
-        const normalized = normalizeString(d.name);
-        const cleanedDistrict = normalized.replace(/\s*(quận|huyện|thị xã|thành phố)\s*/gi, '').trim();
-        return cleanedDistrict === cleaned || cleanedDistrict.includes(cleaned) || cleaned.includes(cleanedDistrict);
-      });
-    }
-
-    if (matchedDistrict) {
-      console.log('Matched district:', matchedDistrict.name);
-      setSelectedDistrictId(matchedDistrict.value);
-      setFormData((prev) => ({ ...prev, district: matchedDistrict.name }));
-      toast.success(`Đã chọn quận/huyện: ${matchedDistrict.name}`);
-    } else {
-      console.log('No district match found');
-      toast.warning(`Không tìm thấy quận/huyện: ${districtName}`);
-    }
-  };
-
-  const matchAndSetWard = (wardName: string) => {
-    if (!wardName || wards.length === 0) {
-      console.log('Cannot match ward:', { wardName, wardsLength: wards.length });
-      return;
-    }
-
-    const normalizedSearch = normalizeString(wardName);
-    console.log('Matching ward:', { wardName, normalizedSearch, wardsCount: wards.length });
-    
-    let matchedWard = wards.find((w) => normalizeString(w.name) === normalizedSearch);
-
-    if (!matchedWard) {
-      matchedWard = wards.find((w) => {
-        const normalized = normalizeString(w.name);
-        return normalized.includes(normalizedSearch) || normalizedSearch.includes(normalized);
-      });
-    }
-
-    if (!matchedWard) {
-      const cleaned = normalizedSearch.replace(/\s*(phường|xã|thị trấn|ward)\s*/gi, '').trim();
-      matchedWard = wards.find((w) => {
-        const normalized = normalizeString(w.name);
-        const cleanedWard = normalized.replace(/\s*(phường|xã|thị trấn)\s*/gi, '').trim();
-        return cleanedWard === cleaned || cleanedWard.includes(cleaned) || cleaned.includes(cleanedWard);
-      });
-    }
-
-    if (matchedWard) {
-      console.log('Matched ward:', matchedWard.name);
-      setSelectedWardCode(matchedWard.value);
-      setFormData((prev) => ({ ...prev, ward: matchedWard.name }));
-      toast.success(`Đã chọn phường/xã: ${matchedWard.name}`);
-    } else {
-      console.log('No ward match found');
-      toast.warning(`Không tìm thấy phường/xã: ${wardName}`);
-    }
-  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -358,88 +228,6 @@ const AddressModal = ({ isOpen, onClose, address, customerId, onSuccess }: Addre
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Google Maps Address Picker */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Chọn địa chỉ từ Google Maps (tùy chọn)
-              </label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowGoogleMapsPicker(!showGoogleMapsPicker)}
-                className="text-blue-600 border-blue-300 hover:bg-blue-50"
-              >
-                <Navigation className="w-4 h-4 mr-1" />
-                {showGoogleMapsPicker ? 'Ẩn' : 'Hiện'}
-              </Button>
-            </div>
-            {showGoogleMapsPicker && (
-              <GoogleMapsAddressPicker
-                onAddressSelected={async (addressData) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    detailedAddress: addressData.detailedAddress,
-                    province: addressData.province,
-                    district: addressData.district,
-                    ward: addressData.ward,
-                  }));
-                  
-                  // Wait a bit for provinces to load if needed
-                  if (provinces.length === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                  }
-                  
-                  // Try to match with GHN provinces
-                  if (addressData.province) {
-                    matchAndSetProvince(addressData.province);
-                    
-                    // Wait for districts to load after province is selected
-                    setTimeout(async () => {
-                      if (addressData.district && selectedProvinceId) {
-                        // Wait for districts query to complete
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        matchAndSetDistrict(addressData.district);
-                        
-                        // Wait for wards to load after district is selected
-                        setTimeout(async () => {
-                          if (addressData.ward && selectedDistrictId) {
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                            matchAndSetWard(addressData.ward);
-                          }
-                        }, 500);
-                      }
-                    }, 500);
-                  }
-                }}
-                onProvinceSelected={(provinceName) => {
-                  if (provinceName) {
-                    matchAndSetProvince(provinceName);
-                  }
-                }}
-                onDistrictSelected={(districtName) => {
-                  if (districtName && selectedProvinceId) {
-                    setTimeout(() => {
-                      if (districts.length > 0) {
-                        matchAndSetDistrict(districtName);
-                      }
-                    }, 500);
-                  }
-                }}
-                onWardSelected={(wardName) => {
-                  if (wardName && selectedDistrictId) {
-                    setTimeout(() => {
-                      if (wards.length > 0) {
-                        matchAndSetWard(wardName);
-                      }
-                    }, 500);
-                  }
-                }}
-              />
-            )}
-          </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Họ và tên người nhận <span className="text-red-500">*</span>

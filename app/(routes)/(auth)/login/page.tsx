@@ -25,7 +25,7 @@ function LoginForm() {
     setIsLoading(true)
 
     try {
-      const response = await loginMutation({ login, password }).unwrap()
+      const response = await loginMutation({ login, password, rememberMe }).unwrap()
 
       tokenManager.setTokens(response.accessToken, response.refreshToken, rememberMe)
 

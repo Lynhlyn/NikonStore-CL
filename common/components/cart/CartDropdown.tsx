@@ -327,7 +327,7 @@ const CartDropdown: React.FC<CartDropdownProps> = ({ children }) => {
                   <button
                     onClick={() => {
                       setOpen(false);
-                      router.push('/product');
+                      router.push('/products');
                     }}
                     className="text-sm text-[#FF6B00] hover:text-[#FF8C00] font-medium transition-colors"
                   >
