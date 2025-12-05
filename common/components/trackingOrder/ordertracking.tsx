@@ -1,80 +1,19 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Search, Package, Truck, CheckCircle, Clock, MapPin, CreditCard, Phone, Mail } from 'lucide-react';
+import { Search, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/core/shadcn/components/ui/button';
+import { Card } from '@/core/shadcn/components/ui/card';
+import { Badge } from '@/core/shadcn/components/ui/badge';
+import { Separator } from '@/core/shadcn/components/ui/separator';
+import Image from 'next/image';
+import { format } from 'date-fns';
 import { useTrackingOrderQuery, useSendTrackingVerificationEmailMutation } from '@/lib/service/modules/orderService';
 import { useEmailVerification } from '../../hooks/useEmailVerification';
 import EmailVerificationModal from '../EmailVerificationModal/EmailVerificationModal';
-
-const getStatusColor = (status: number) => {
-  switch (status) {
-    case 4:
-      return 'bg-blue-500';
-    case 13:
-      return 'bg-yellow-500';
-    case 5:
-      return 'bg-purple-500';
-    case 6:
-      return 'bg-green-500';
-    case 7:
-      return 'bg-red-500';
-    case 3:
-      return 'bg-gray-400';
-    case 8:
-      return 'bg-orange-500';
-    case 12:
-      return 'bg-red-600';
-    default:
-      return 'bg-gray-300';
-  }
-};
-
-const getStatusIcon = (status: number) => {
-  switch (status) {
-    case 4:
-      return <CheckCircle className="h-4 w-4" />;
-    case 13:
-      return <Package className="h-4 w-4" />;
-    case 5:
-      return <Truck className="h-4 w-4" />;
-    case 6:
-      return <CheckCircle className="h-4 w-4" />;
-    default:
-      return <Clock className="h-4 w-4" />;
-  }
-};
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-  }).format(amount);
-};
-
-const getOrderStatusText = (status: number) => {
-  switch (status) {
-    case 3:
-      return 'Chờ xác nhận';
-    case 4:
-      return 'Đã xác nhận';
-    case 5:
-      return 'Đang giao';
-    case 6:
-      return 'Hoàn thành';
-    case 7:
-      return 'Đã hủy';
-    case 8:
-      return 'Chờ thanh toán';
-    case 12:
-      return 'Giao hàng thất bại';
-    case 13:
-      return 'Đang chuẩn bị hàng';
-    default:
-      return 'Không xác định';
-  }
-};
+import { getOrderStatusLabel, getOrderStatusColors } from '@/common/utils/orderStatusMapper';
+import { getPaymentMethodLabel } from '@/common/utils/paymentMethodMapper';
 
 export default function OrderTracking() {
   const [orderNumber, setOrderNumber] = useState('');
@@ -225,94 +164,224 @@ export default function OrderTracking() {
           </div>
         )}
 
-        {orderData && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
-            <div className="flex items-center justify-between border-b pb-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Đơn hàng #{orderData.trackingNumber}</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Ngày đặt: {new Date(orderData.createdAt).toLocaleDateString('vi-VN')}
-                </p>
-              </div>
-              <div
-                className={`px-4 py-2 rounded-full text-white flex items-center gap-2 ${getStatusColor(
-                  orderData.status
-                )}`}
-              >
-                {getStatusIcon(orderData.status)}
-                <span className="font-medium">{getOrderStatusText(orderData.status)}</span>
-              </div>
-            </div>
+        {orderData && (() => {
+          const products = orderData.orderDetails?.map((item: any) => ({
+            name: item.productName,
+            sku: item.sku,
+            quantity: item.quantity,
+            price: item.finalPrice || item.price || 0,
+            image: item.imageUrl || item.productDetail?.imageUrl || '/placeholder.svg',
+            color: item.colorName || item.color || item.productColor || item.variantColor || '-',
+            brand: item.brandName || item.brand || '-',
+            size: item.dimensions || item.size || item.productSize || '-',
+          })) || [];
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Địa chỉ giao hàng
-                </h3>
-                <div className="text-gray-700">
-                  <p className="font-medium">{orderData.recipientName}</p>
-                  <p className="flex items-center gap-2 mt-1">
-                    <Phone className="w-4 h-4" />
-                    {orderData.recipientPhone}
-                  </p>
-                  <p className="flex items-center gap-2 mt-1">
-                    <Mail className="w-4 h-4" />
-                    {orderData.recipientEmail}
-                  </p>
-                  <p className="mt-2">{orderData.shippingAddress}</p>
+          const subtotal = products.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+          const shippingFee = orderData.shippingFee || 0;
+          const discount = orderData.discount || 0;
+          const total = subtotal + shippingFee - discount;
+
+          const getStatusBadge = (status: number) => {
+            const colors = getOrderStatusColors(status);
+            return (
+              <Badge className={`${colors.bg} ${colors.text} ${colors.border} border font-medium px-3 py-1.5 text-sm`}>
+                {getOrderStatusLabel(status)}
+              </Badge>
+            );
+          };
+
+          return (
+            <div className="space-y-4 sm:space-y-6">
+              <Card className="p-4 sm:p-6 border-l-4 border-l-blue-500">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">Sản phẩm đã đặt</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Đơn hàng #{orderData.trackingNumber} • {(orderData.orderDate || orderData.createdAt) ? format(new Date(orderData.orderDate || orderData.createdAt), "dd/MM/yyyy HH:mm") : ''}
+                    </p>
+                  </div>
+                  <div className="flex justify-end">
+                    {getStatusBadge(orderData.status || orderData.orderStatus)}
+                  </div>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Thông tin thanh toán
-                </h3>
-                <div className="text-gray-700">
-                  <p>
-                    <span className="font-medium">Phương thức:</span>{' '}
-                    {orderData.paymentMethod === 'COD' ? 'Thanh toán khi nhận hàng' : 'VNPay'}
-                  </p>
-                  <p className="mt-2">
-                    <span className="font-medium">Trạng thái:</span> {orderData.paymentStatus || 'Chưa thanh toán'}
-                  </p>
+                <div className="hidden lg:grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 mb-4 pb-3 border-b-2 border-gray-200">
+                  <div className="col-span-6">Sản phẩm</div>
+                  <div className="col-span-2 text-center">Đơn giá</div>
+                  <div className="col-span-2 text-center">Số lượng</div>
+                  <div className="col-span-2 text-center">Tạm tính</div>
                 </div>
-              </div>
-            </div>
+                <div className="space-y-3 sm:space-y-4">
+                  {products.map((product: any, index: number) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start sm:items-center p-3 sm:p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
+                    >
+                      <div className="lg:col-span-6 flex items-start sm:items-center gap-3 sm:gap-4">
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          width={80}
+                          height={80}
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 line-clamp-2">{product.name}</h3>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600">
+                            <div><span className="font-medium">SKU:</span> <span className="break-all">{product.sku || "-"}</span></div>
+                            <div><span className="font-medium">Màu:</span> {product.color || "-"}</div>
+                            <div><span className="font-medium">Thương hiệu:</span> {product.brand || "-"}</div>
+                            <div><span className="font-medium">Kích thước:</span> {product.size || "-"}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="lg:col-span-2 lg:text-center flex justify-between lg:justify-center items-center">
+                        <span className="lg:hidden font-semibold text-gray-700 text-sm">Đơn giá: </span>
+                        <span className="text-sm sm:text-base font-semibold">{product.price?.toLocaleString("vi-VN")}₫</span>
+                      </div>
+                      <div className="lg:col-span-2 lg:text-center flex justify-between lg:justify-center items-center">
+                        <span className="lg:hidden font-semibold text-gray-700 text-sm">Số lượng: </span>
+                        <span className="text-sm sm:text-base font-semibold">{product.quantity}</span>
+                      </div>
+                      <div className="lg:col-span-2 lg:text-center flex justify-between lg:justify-center items-center">
+                        <span className="lg:hidden font-semibold text-gray-700 text-sm">Tạm tính: </span>
+                        <span className="text-base sm:text-lg font-bold text-blue-600">
+                          {(product.price * product.quantity)?.toLocaleString("vi-VN")}₫
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
 
-            <div className="border-t pt-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Sản phẩm</h3>
-              <div className="space-y-4">
-                {orderData.orderDetails?.map((detail: any, index: number) => (
-                  <div key={index} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
-                    {detail.productDetail?.imageUrl && (
-                      <img
-                        src={detail.productDetail.imageUrl}
-                        alt={detail.productName}
-                        className="w-20 h-20 object-cover rounded"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{detail.productName}</h4>
-                      <p className="text-sm text-gray-500 mt-1">Số lượng: {detail.quantity}</p>
-                      <p className="text-lg font-semibold text-red-600 mt-2">
-                        {formatCurrency(detail.price * detail.quantity)}
-                      </p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <Card className="p-4 sm:p-6">
+                  <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                    <span className="text-lg sm:text-xl">📧</span>
+                    <span>Thông tin khách hàng</span>
+                  </h2>
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                      <span className="font-medium text-sm sm:text-base">Họ tên:</span>
+                      <span className="text-sm sm:text-base break-words">{orderData.recipientName || orderData.customerName}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                      <span className="font-medium text-sm sm:text-base">SĐT:</span>
+                      <span className="text-sm sm:text-base">{orderData.recipientPhone || orderData.customerPhone}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                      <span className="font-medium text-sm sm:text-base">Email:</span>
+                      <span className="text-sm sm:text-base break-all">{orderData.recipientEmail || orderData.customerEmail}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                      <span className="font-medium text-sm sm:text-base">Địa chỉ:</span>
+                      <span className="text-sm sm:text-base break-words text-right sm:text-left">{orderData.shippingAddress}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                </Card>
 
-            <div className="border-t pt-6">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span>Tổng cộng:</span>
-                <span className="text-red-600">{formatCurrency(orderData.totalAmount || 0)}</span>
+                <Card className="p-4 sm:p-6">
+                  <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Tóm tắt đơn hàng</h2>
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm sm:text-base">Tạm tính:</span>
+                      <span className="text-sm sm:text-base font-medium">{subtotal.toLocaleString("vi-VN")}₫</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm sm:text-base">Phí vận chuyển:</span>
+                      <span className="text-sm sm:text-base font-medium">{shippingFee.toLocaleString("vi-VN")}₫</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm sm:text-base">Giảm giá:</span>
+                      <span className="text-sm sm:text-base font-medium text-red-600">-{discount.toLocaleString("vi-VN")}₫</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between items-center text-base sm:text-lg font-semibold pt-1">
+                      <span>Tổng cộng:</span>
+                      <span className="text-blue-600">{total.toLocaleString("vi-VN")}₫</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2 border-t">
+                      <span className="text-sm sm:text-base font-medium">Trạng thái:</span>
+                      <div className="flex justify-start sm:justify-end">
+                        {getStatusBadge(orderData.status || orderData.orderStatus)}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
               </div>
+
+              {orderData.note && (
+                <Card className="p-4 sm:p-6 bg-yellow-50 border-yellow-200">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-semibold text-yellow-800">Ghi chú đơn hàng</h2>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 sm:p-4 border border-yellow-200">
+                    <p className="text-sm sm:text-base text-gray-800 font-medium break-words">{orderData.note}</p>
+                  </div>
+                </Card>
+              )}
+
+              <Card className="p-4 sm:p-6 bg-gradient-to-br from-slate-50 to-white border-slate-200">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-semibold text-slate-800">Thông tin thanh toán</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex flex-col space-y-1">
+                      <span className="text-xs sm:text-sm font-medium text-slate-500 uppercase tracking-wide">Phương thức</span>
+                      <span className="text-base sm:text-lg font-semibold text-slate-800">
+                        {getPaymentMethodLabel(orderData.paymentMethod)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 border border-slate-200 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                        <div className="flex-1">
+                          <span className="text-xs sm:text-sm font-medium text-slate-500 uppercase tracking-wide block">Ngày đặt hàng</span>
+                          <span className="text-base sm:text-lg font-semibold text-slate-800">
+                            {(orderData.orderDate || orderData.createdAt) ? format(new Date(orderData.orderDate || orderData.createdAt), "dd/MM/yyyy") : ''}
+                          </span>
+                        </div>
+                        <div className="sm:text-right">
+                          <span className="text-xs sm:text-sm font-medium text-slate-500 uppercase tracking-wide block">Thời gian</span>
+                          <span className="text-base sm:text-lg font-semibold text-slate-800">
+                            {(orderData.orderDate || orderData.createdAt) ? format(new Date(orderData.orderDate || orderData.createdAt), "HH:mm") : ''}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         <EmailVerificationModal
           isOpen={showVerificationModal}

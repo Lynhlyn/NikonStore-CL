@@ -7,7 +7,6 @@ import { persistor, store } from "../service/store"
 import { useAppDispatch } from "../hooks/redux"
 import { setCustomerId } from "../features/appSlice"
 import { getCustomerIdFromToken } from "../service/modules/tokenService"
-import { AuthGuard } from "../components/AuthGuard"
 import Loader from "@/components/common/Loader"
 
 interface ProvidersProps {
@@ -41,9 +40,7 @@ export function ReduxProvider({ children }: ProvidersProps) {
         persistor={persistor}
       >
         <AuthInitializer>
-          <AuthGuard>
-            {children}
-          </AuthGuard>
+          {children}
         </AuthInitializer>
       </PersistGate>
     </Provider>

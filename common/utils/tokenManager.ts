@@ -125,32 +125,46 @@ export class TokenManager {
 
   private async performRefresh(refreshToken: string): Promise<string> {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-    const response = await fetch(`${baseUrl}/api/v1/client/auth/refresh-token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    })
+    
+    try {
+      const response = await fetch(`${baseUrl}/api/v1/client/auth/refresh-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
 
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 400) {
+      if (!response.ok) {
         this.clearTokens()
         if (typeof window !== "undefined") {
-          window.location.href = "/login"
+          const currentPath = window.location.pathname
+          const returnUrl = encodeURIComponent(currentPath)
+          window.location.href = `/login?returnUrl=${returnUrl}`
         }
+        throw new Error(`Failed to refresh token: ${response.status}`)
       }
-      throw new Error(`Failed to refresh token: ${response.status}`)
+
+      const data = await response.json()
+      const newAccessToken = data.accessToken
+      const newRefreshToken = data.refreshToken
+
+      if (!newAccessToken) {
+        this.clearTokens()
+        throw new Error("No access token in refresh response")
+      }
+
+      const isRememberMe = this.getRememberMe() || localStorage.getItem("accessToken") !== null || localStorage.getItem("refreshToken") !== null
+      this.setTokens(newAccessToken, newRefreshToken || refreshToken, isRememberMe)
+
+      return newAccessToken
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Failed to refresh token")) {
+        throw error
+      }
+      this.clearTokens()
+      throw new Error("Network error during token refresh")
     }
-
-    const data = await response.json()
-    const newAccessToken = data.accessToken
-    const newRefreshToken = data.refreshToken
-
-    const isRememberMe = this.getRememberMe() || localStorage.getItem("accessToken") !== null || localStorage.getItem("refreshToken") !== null
-    this.setTokens(newAccessToken, newRefreshToken, isRememberMe)
-
-    return newAccessToken
   }
 
   public getUserInfo() {

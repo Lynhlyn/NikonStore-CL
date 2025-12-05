@@ -41,17 +41,38 @@ const baseQueryWithInterceptor: BaseQueryFn<string | FetchArgs, unknown, FetchBa
 
     const isLoginRequest = typeof args === "object" && args.url && args.url.includes("/auth/login")
     const isRefreshRequest = typeof args === "object" && args.url && args.url.includes("/auth/refresh-token")
+    const isRegisterRequest = typeof args === "object" && args.url && args.url.includes("/auth/signup")
     
-    if (!isLoginRequest && !isRefreshRequest) {
+    const isPublicEndpoint = typeof args === "object" && args.url && (
+      args.url.includes("/products") ||
+      args.url.includes("/banners") ||
+      args.url.includes("/categories") ||
+      args.url.includes("/blogs") ||
+      args.url.includes("/faqs") ||
+      args.url.includes("/brands") ||
+      args.url.includes("/colors") ||
+      args.url.includes("/materials") ||
+      args.url.includes("/strap-types") ||
+      args.url.includes("/capacities") ||
+      args.url.includes("/tags") ||
+      args.url.includes("/features") ||
+      args.url.includes("/pages")
+    )
+    
+    if (!isLoginRequest && !isRefreshRequest && !isRegisterRequest && !isPublicEndpoint) {
       const validToken = await tokenManager.ensureValidToken()
-      if (validToken && typeof args === "object" && args.headers) {
+      if (!validToken) {
+        tokenManager.clearTokens()
+        return { error: { status: 401, data: "Token expired" } } as { error: FetchBaseQueryError }
+      }
+      if (typeof args === "object" && args.headers) {
         (args.headers as Record<string, string>)["Authorization"] = `Bearer ${validToken}`
       }
     }
 
     let result = await baseQuery(args, api, extraOptions)
     
-    if (result.error?.status === 401 && !isLoginRequest && !isRefreshRequest) {
+    if (result.error?.status === 401 && !isLoginRequest && !isRefreshRequest && !isRegisterRequest && !isPublicEndpoint) {
       try {
         const newToken = await tokenManager.refreshAccessToken()
         if (newToken) {
@@ -64,9 +85,6 @@ const baseQueryWithInterceptor: BaseQueryFn<string | FetchArgs, unknown, FetchBa
         }
       } catch {
         tokenManager.clearTokens()
-        if (typeof window !== "undefined") {
-          window.location.href = "/login"
-        }
         return result
       }
     }

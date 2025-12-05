@@ -16,7 +16,8 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
-  const returnUrl = searchParams.get("returnUrl") || "/"
+  const rawReturnUrl = searchParams.get("returnUrl") || "/"
+  const returnUrl = rawReturnUrl === "/login" ? "/" : rawReturnUrl
 
   const [loginMutation] = useLoginMutation()
 

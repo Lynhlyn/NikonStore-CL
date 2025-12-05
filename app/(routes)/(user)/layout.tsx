@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { AuthGuard } from '@/lib/components/AuthGuard'
 import Sidebar from '@/common/components/personal/Sidebar'
@@ -11,7 +11,6 @@ import Loader from '@/components/common/Loader'
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const router = useRouter()
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const customerId = getCustomerIdFromToken()
 
@@ -19,13 +18,6 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     customerId || 0,
     { skip: !customerId }
   )
-
-  useEffect(() => {
-    if (!customerId && !isLoading) {
-      const returnUrl = encodeURIComponent(pathname || '/')
-      router.replace(`/login?returnUrl=${returnUrl}`)
-    }
-  }, [customerId, isLoading, pathname, router])
 
   if (!customerId || isLoading) {
     return (
