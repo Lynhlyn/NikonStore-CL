@@ -18,7 +18,17 @@ export const voucherApi = apiSlice.injectEndpoints({
         method: "GET",
       }),
       transformResponse: (response: ApiResponse<VoucherResponseDTO[]>) => {
-        return response.data || []
+        if (!response) return []
+        if (Array.isArray(response.data)) {
+          return response.data
+        }
+        if (response.data && typeof response.data === "object" && "data" in response.data) {
+          return (response.data as any).data || []
+        }
+        return []
+      },
+      transformErrorResponse: (response: any) => {
+        return response?.data || response || { message: "Không thể tải danh sách voucher" }
       },
       keepUnusedDataFor: 0,
     }),
@@ -31,6 +41,47 @@ export const voucherApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<VoucherResponseDTO[]>) => {
         return response.data || []
+      },
+      keepUnusedDataFor: 0,
+    }),
+
+    fetchAvailableVouchersWithFilter: build.query<
+      VoucherResponseDTO[],
+      {
+        customerId: number
+        code?: string
+        discountType?: string
+        sortBy?: string
+        sortDir?: string
+        page?: number
+        size?: number
+      }
+    >({
+      query: ({ customerId, code, discountType, sortBy = "endDate", sortDir = "asc", page = 0, size = 20 }) => ({
+        url: `${voucher}`,
+        method: "GET",
+        params: {
+          customerId,
+          ...(code && { code }),
+          ...(discountType && { discountType }),
+          sortBy,
+          sortDir,
+          page,
+          size,
+        },
+      }),
+      transformResponse: (response: ApiResponse<VoucherResponseDTO[]>) => {
+        if (!response) return []
+        if (Array.isArray(response.data)) {
+          return response.data
+        }
+        if (response.data && typeof response.data === "object" && "data" in response.data) {
+          return (response.data as any).data || []
+        }
+        return []
+      },
+      transformErrorResponse: (response: any) => {
+        return response?.data || response || { message: "Không thể tải danh sách voucher" }
       },
       keepUnusedDataFor: 0,
     }),
@@ -145,6 +196,8 @@ export const {
   useLazyFetchPublicActiveVouchersQuery,
   useFetchAvailableVouchersQuery,
   useLazyFetchAvailableVouchersQuery,
+  useFetchAvailableVouchersWithFilterQuery,
+  useLazyFetchAvailableVouchersWithFilterQuery,
   useFetchVoucherByCodeQuery,
   useLazyFetchVoucherByCodeQuery,
   useCheckVoucherExistsQuery,

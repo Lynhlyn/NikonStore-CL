@@ -244,7 +244,7 @@ export function Header() {
                 hasChildren: categoryChildren.length > 0,
                 children: categoryChildren,
             },
-            { label: "Khuyến mãi", href: "/vouchers" },
+            { label: "Mã giảm giá", href: "/vouchers" },
             { label: "Blog", href: "/blogs" },
             { label: "Về chúng tôi", href: "/about" },
             { label: "Hỗ trợ", href: "/faqs" },

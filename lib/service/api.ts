@@ -56,7 +56,8 @@ const baseQueryWithInterceptor: BaseQueryFn<string | FetchArgs, unknown, FetchBa
       args.url.includes("/capacities") ||
       args.url.includes("/tags") ||
       args.url.includes("/features") ||
-      args.url.includes("/pages")
+      args.url.includes("/pages") ||
+      args.url.includes("/vouchers/public/active")
     )
     
     if (!isLoginRequest && !isRefreshRequest && !isRegisterRequest && !isPublicEndpoint) {
