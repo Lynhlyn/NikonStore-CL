@@ -5,6 +5,7 @@ import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
 import { ReduxProvider } from "@/lib/store/Provider";
 import CartInitializer from "@/common/components/cart/CartInitializer";
 import GoogleMapsScript from "@/components/GoogleMapsScript";
+import VNPayRedirectHandler from "@/common/components/VNPayRedirectHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
         <ReduxProvider>
           <GoogleMapsScript />
           <CartInitializer />
+          <VNPayRedirectHandler />
           <ConditionalLayout>
             {children}
           </ConditionalLayout>

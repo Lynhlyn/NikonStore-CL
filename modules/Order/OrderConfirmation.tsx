@@ -23,7 +23,7 @@ interface OrderConfirmationProps {
 
 const checkOrderStatus = async (trackingNumber: string) => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/orders/status/${trackingNumber}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/status/${trackingNumber}`, {
       method: 'GET',
       headers: {
         'Cache-Control': 'no-cache',

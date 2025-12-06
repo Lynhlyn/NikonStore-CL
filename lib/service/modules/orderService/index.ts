@@ -176,3 +176,27 @@ export const {
   useVerifyOrderEmailMutation,
   useSendTrackingVerificationEmailMutation,
 } = orderApi;
+
+export async function trackingOrder(trackingNumber: string, email: string): Promise<any> {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/orders/tracking/${trackingNumber}?email=${encodeURIComponent(email)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.error('Error tracking order:', error);
+    return null;
+  }
+}
