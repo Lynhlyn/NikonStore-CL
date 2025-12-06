@@ -246,7 +246,7 @@ export function Header() {
             },
             { label: "Mã giảm giá", href: "/vouchers" },
             { label: "Blog", href: "/blogs" },
-            { label: "Về chúng tôi", href: "/about" },
+            { label: "Về chúng tôi", href: "/pages/about-us" },
             { label: "Hỗ trợ", href: "/faqs" },
             { label: "Tra cứu đơn hàng", href: "/order/track" },
         ]

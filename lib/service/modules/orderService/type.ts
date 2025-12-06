@@ -19,6 +19,7 @@ export interface CreateOrderRequest {
   orderType: string;
   toDistrictId?: number;
   toWardCode?: string;
+  ipAddress?: string;
 }
 
 export interface OrderDetailResponse {

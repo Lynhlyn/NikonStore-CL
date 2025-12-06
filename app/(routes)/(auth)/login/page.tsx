@@ -8,6 +8,11 @@ import { PasswordInput } from "@/components/auth/PasswordInput"
 import { toast } from "sonner"
 import { tokenManager } from "@/common/utils/tokenManager"
 import Loader from "@/components/common/Loader"
+import { useDispatch } from "react-redux"
+import { AppDispatch } from "@/lib/service/store"
+import { fetchCart } from "@/lib/service/modules/cartService"
+import { getCookie } from "@/common/utils/cartUtils"
+import { getCustomerIdFromToken } from "@/lib/service/modules/tokenService"
 
 function LoginForm() {
   const [login, setLogin] = useState("")
@@ -16,6 +21,7 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
+  const dispatch = useDispatch<AppDispatch>()
   const rawReturnUrl = searchParams.get("returnUrl") || "/"
   const returnUrl = rawReturnUrl === "/login" ? "/" : rawReturnUrl
 
@@ -31,9 +37,19 @@ function LoginForm() {
       tokenManager.setTokens(response.accessToken, response.refreshToken, rememberMe)
 
       toast.success("Đăng nhập thành công!", { id: "login-success" })
+      
+      const customerIdForCart = getCustomerIdFromToken();
+      const cookieId = getCookie('cookieId');
+      
+      if (customerIdForCart || cookieId) {
+        dispatch(fetchCart({
+          customerId: customerIdForCart || undefined,
+          cookieId: cookieId || undefined,
+        }));
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // Redirect to returnUrl
       try {
         const url = new URL(returnUrl, window.location.origin)
         if (url.origin === window.location.origin) {

@@ -861,6 +861,41 @@ export default function Step2CustomerInfo({
               </div>
             </div>
           </label>
+
+          <label className="flex items-start p-4 border-2 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="vnpay"
+              checked={formData.paymentMethod === 'vnpay'}
+              onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+              className="sr-only"
+            />
+            <div
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5 shrink-0 ${
+                formData.paymentMethod === 'vnpay'
+                  ? 'border-blue-600 bg-blue-600'
+                  : 'border-gray-300'
+              }`}
+            >
+              {formData.paymentMethod === 'vnpay' && (
+                <div className="w-2 h-2 rounded-full bg-white"></div>
+              )}
+            </div>
+            <div className="flex items-start gap-3 flex-1">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+                <CreditCard className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-gray-900 mb-1">
+                  Thanh toán trực tuyến
+                </div>
+                <div className="text-sm text-gray-500">
+                  Thanh toán online qua thẻ ATM, Visa, Mastercard
+                </div>
+              </div>
+            </div>
+          </label>
         </div>
       </div>
 

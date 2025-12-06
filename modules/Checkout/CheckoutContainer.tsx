@@ -13,6 +13,8 @@ import {
   useGetDistrictsQuery,
   useGetWardsQuery,
 } from '@/lib/service/modules/ghnService';
+import { useEmailVerification } from '@/common/hooks/useEmailVerification';
+import EmailVerificationModal from '@/common/components/EmailVerificationModal/EmailVerificationModal';
 import CheckoutProgressBar from './components/CheckoutProgressBar';
 import Step1CartReview from './components/Step1CartReview';
 import Step2CustomerInfo, { type CustomerFormData } from './components/Step2CustomerInfo';
@@ -36,11 +38,15 @@ export default function CheckoutContainer() {
   const router = useRouter();
   const { customerId } = useAuth();
   const [createOrder, { isLoading }] = useCreateOrderMutation();
+  const { sendVerificationEmail } = useEmailVerification();
   const [currentStep, setCurrentStep] = useState(1);
   const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([]);
   const [checkoutSubtotal, setCheckoutSubtotal] = useState(0);
   const [formData, setFormData] = useState<CustomerFormData | null>(null);
   const [shippingFee, setShippingFee] = useState(0);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [pendingOrderData, setPendingOrderData] = useState<CreateOrderRequest | null>(null);
 
   useEffect(() => {
     const items = localStorage.getItem('checkoutItems');
@@ -132,6 +138,17 @@ export default function CheckoutContainer() {
       name: w.WardName,
     })) || [];
 
+  const getClientIp = async (): Promise<string> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip || '127.0.0.1';
+    } catch (error) {
+      console.error('Error fetching IP address:', error);
+      return '127.0.0.1';
+    }
+  };
+
   const handleStep2Next = async () => {
     if (!formData) {
       toast.error('Vui lòng điền đầy đủ thông tin');
@@ -143,46 +160,66 @@ export default function CheckoutContainer() {
       return;
     }
 
+    const selectedProvince = provinces.find(
+      (p) => p.id === formData.provinceId
+    );
+    const selectedDistrict = districts.find(
+      (d) => d.id === formData.districtId
+    );
+    const selectedWard = wards.find((w) => w.id === formData.wardCode);
+
+    const shippingAddress = [
+      formData.detailedAddress,
+      selectedWard?.name,
+      selectedDistrict?.name,
+      selectedProvince?.name,
+    ]
+      .filter(Boolean)
+      .join(', ');
+
+    const ipAddress = await getClientIp();
+
+    const orderData: CreateOrderRequest = {
+      customerId: customerId || null,
+      cookieId: customerId ? null : getCookie('cookieId') || null,
+      cartItems: checkoutItems.map((item) => ({
+        cartdetailId: item.cartDetailId,
+        quantity: item.quantity,
+      })),
+      shippingAddress,
+      paymentMethod: formData.paymentMethod.toUpperCase(),
+      voucherId: formData.voucherId,
+      discount: formData.discount,
+      notes: formData.notes || null,
+      recipientName: formData.recipientName,
+      recipientPhone: formData.recipientPhone,
+      recipientEmail: formData.recipientEmail,
+      shippingFee: shippingFee,
+      orderType: 'ONLINE',
+      toDistrictId: formData.districtId || undefined,
+      toWardCode: formData.wardCode || undefined,
+      ipAddress: ipAddress,
+    };
+
+    setPendingOrderData(orderData);
+    setVerificationEmail(formData.recipientEmail);
+
     try {
-      const selectedProvince = provinces.find(
-        (p) => p.id === formData.provinceId
-      );
-      const selectedDistrict = districts.find(
-        (d) => d.id === formData.districtId
-      );
-      const selectedWard = wards.find((w) => w.id === formData.wardCode);
+      await sendVerificationEmail({
+        email: formData.recipientEmail,
+        customerName: formData.recipientName,
+      });
+      setShowVerificationModal(true);
+    } catch (error: any) {
+      toast.error('Không thể gửi email xác thực. Vui lòng thử lại.');
+    }
+  };
 
-      const shippingAddress = [
-        formData.detailedAddress,
-        selectedWard?.name,
-        selectedDistrict?.name,
-        selectedProvince?.name,
-      ]
-        .filter(Boolean)
-        .join(', ');
+  const handleVerificationSuccess = async () => {
+    if (!pendingOrderData) return;
 
-      const orderData: CreateOrderRequest = {
-        customerId: customerId || null,
-        cookieId: customerId ? null : getCookie('cookieId') || null,
-        cartItems: checkoutItems.map((item) => ({
-          cartdetailId: item.cartDetailId,
-          quantity: item.quantity,
-        })),
-        shippingAddress,
-        paymentMethod: formData.paymentMethod.toUpperCase(),
-        voucherId: formData.voucherId,
-        discount: formData.discount,
-        notes: formData.notes || null,
-        recipientName: formData.recipientName,
-        recipientPhone: formData.recipientPhone,
-        recipientEmail: formData.recipientEmail,
-        shippingFee: shippingFee,
-        orderType: 'ONLINE',
-        toDistrictId: formData.districtId || undefined,
-        toWardCode: formData.wardCode || undefined,
-      };
-
-      const order = await createOrder(orderData).unwrap();
+    try {
+      const order = await createOrder(pendingOrderData).unwrap();
 
       localStorage.setItem('orderData', JSON.stringify(order));
       localStorage.removeItem('checkoutItems');
@@ -260,6 +297,14 @@ export default function CheckoutContainer() {
           )}
         </div>
       </div>
+
+      <EmailVerificationModal
+        isOpen={showVerificationModal}
+        email={verificationEmail}
+        customerName={formData?.recipientName || ''}
+        onClose={() => setShowVerificationModal(false)}
+        onVerificationSuccess={handleVerificationSuccess}
+      />
     </div>
   );
 }

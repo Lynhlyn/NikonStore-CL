@@ -10,6 +10,8 @@ import { useAppDispatch } from '../../../lib/hooks/redux'
 import { setCustomerId } from '../../../lib/features/appSlice'
 import { persistor } from '../../../lib/service/store'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { fetchCart } from '../../../lib/service/modules/cartService'
+import { getCookie } from '../../utils/cartUtils'
 
 interface SidebarProps {
   fullName?: string
@@ -39,8 +41,18 @@ const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage
       await persistor.purge()
     }
 
+    const fetchCartAfterLogout = async () => {
+      const cookieId = getCookie('cookieId');
+      if (cookieId) {
+        dispatch(fetchCart({
+          cookieId: cookieId,
+        }));
+      }
+    };
+
     if (!identifier) {
       await clearAuthData()
+      await fetchCartAfterLogout()
       toast.success('Đã đăng xuất!')
       window.location.href = '/'
       return
@@ -51,12 +63,14 @@ const Sidebar: React.FC<SidebarProps> = ({ fullName, email, identifier, urlImage
       .unwrap()
       .then(async () => {
         await clearAuthData()
+        await fetchCartAfterLogout()
         toast.success('Đăng xuất thành công!')
         window.location.href = '/'
       })
       .catch(async (error) => {
         console.error('Logout failed:', error)
         await clearAuthData()
+        await fetchCartAfterLogout()
         toast.error('Đăng xuất thất bại từ server, nhưng đã xóa dữ liệu local')
         window.location.href = '/'
       })

@@ -24,6 +24,8 @@ const baseQuery = fetchBaseQuery({
   },
 })
 
+const externalBaseQuery = fetchBaseQuery()
+
 const baseQueryWithInterceptor: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
   args,
   api,
@@ -32,63 +34,21 @@ const baseQueryWithInterceptor: BaseQueryFn<string | FetchArgs, unknown, FetchBa
   api.dispatch(setIsLoading(true))
 
   try {
-    if (typeof args === "object" && args.body && !(args.body instanceof FormData)) {
+    const isExternalApi = typeof args === "object" && args.url && (
+      args.url.includes("https://") ||
+      args.url.includes("http://") ||
+      args.url.includes("online-gateway.ghn.vn")
+    )
+
+    if (typeof args === "object" && args.body && !(args.body instanceof FormData) && !isExternalApi) {
       if (!args.headers) {
         args.headers = {}
       }
       (args.headers as Record<string, string>)["Content-Type"] = "application/json"
     }
 
-    const isLoginRequest = typeof args === "object" && args.url && args.url.includes("/auth/login")
-    const isRefreshRequest = typeof args === "object" && args.url && args.url.includes("/auth/refresh-token")
-    const isRegisterRequest = typeof args === "object" && args.url && args.url.includes("/auth/signup")
-    
-    const isPublicEndpoint = typeof args === "object" && args.url && (
-      args.url.includes("/products") ||
-      args.url.includes("/banners") ||
-      args.url.includes("/categories") ||
-      args.url.includes("/blogs") ||
-      args.url.includes("/faqs") ||
-      args.url.includes("/brands") ||
-      args.url.includes("/colors") ||
-      args.url.includes("/materials") ||
-      args.url.includes("/strap-types") ||
-      args.url.includes("/capacities") ||
-      args.url.includes("/tags") ||
-      args.url.includes("/features") ||
-      args.url.includes("/pages") ||
-      args.url.includes("/vouchers/public/active")
-    )
-    
-    if (!isLoginRequest && !isRefreshRequest && !isRegisterRequest && !isPublicEndpoint) {
-      const validToken = await tokenManager.ensureValidToken()
-      if (!validToken) {
-        tokenManager.clearTokens()
-        return { error: { status: 401, data: "Token expired" } } as { error: FetchBaseQueryError }
-      }
-      if (typeof args === "object" && args.headers) {
-        (args.headers as Record<string, string>)["Authorization"] = `Bearer ${validToken}`
-      }
-    }
-
-    let result = await baseQuery(args, api, extraOptions)
-    
-    if (result.error?.status === 401 && !isLoginRequest && !isRefreshRequest && !isRegisterRequest && !isPublicEndpoint) {
-      try {
-        const newToken = await tokenManager.refreshAccessToken()
-        if (newToken) {
-          if (typeof args === "object" && args.headers) {
-            (args.headers as Record<string, string>)["Authorization"] = `Bearer ${newToken}`
-          }
-          result = await baseQuery(args, api, extraOptions)
-        } else {
-          throw new Error("Failed to refresh token")
-        }
-      } catch {
-        tokenManager.clearTokens()
-        return result
-      }
-    }
+    const queryToUse = isExternalApi ? externalBaseQuery : baseQuery
+    const result = await queryToUse(args, api, extraOptions)
 
     if (result.error) {
       let errorMessage = "Đã xảy ra lỗi khi tải dữ liệu"

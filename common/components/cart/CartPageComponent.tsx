@@ -69,24 +69,35 @@ const CartItemComponent = React.memo(
 
     const handleQuantityChange = useCallback(
       (newQuantity: number) => {
-        if (newQuantity === 0) {
+        const sanitizedQty = Math.max(1, Math.floor(Math.abs(newQuantity)));
+        if (sanitizedQty === 0 || isNaN(sanitizedQty) || !isFinite(sanitizedQty)) {
+          setLocalQuantity(item.quantity);
+          setInputValue(item.quantity.toString());
+          return;
+        }
+
+        if (sanitizedQty === 0) {
           onRemove(item.cartDetailId);
           return;
         }
 
-        const validatedQuantity = validateQuantity(newQuantity, item.stock);
+        const validatedQuantity = validateQuantity(sanitizedQty, item.stock);
         if (validatedQuantity > 0) {
           setLocalQuantity(validatedQuantity);
+          setInputValue(validatedQuantity.toString());
           onQuantityChange(item.cartDetailId, validatedQuantity);
+        } else {
+          setLocalQuantity(item.quantity);
+          setInputValue(item.quantity.toString());
         }
       },
-      [item.cartDetailId, item.stock, onRemove, onQuantityChange]
+      [item.cartDetailId, item.quantity, item.stock, onRemove, onQuantityChange]
     );
 
     const handleInputChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        if (/^\d*$/.test(value)) {
+        if (value === '' || /^[1-9]\d*$/.test(value)) {
           setInputValue(value);
         }
       },
@@ -95,15 +106,24 @@ const CartItemComponent = React.memo(
 
     const handleInputBlur = useCallback(() => {
       setIsEditing(false);
-      const numValue = parseInt(inputValue) || 0;
+      const numValue = Math.max(1, Math.floor(Math.abs(parseInt(inputValue) || 1)));
 
-      if (numValue === 0) {
-        onRemove(item.cartDetailId);
+      if (numValue <= 0 || isNaN(numValue) || !isFinite(numValue)) {
+        setInputValue(item.quantity.toString());
+        setLocalQuantity(item.quantity);
         return;
       }
 
-      onQuantityChange(item.cartDetailId, numValue);
-    }, [inputValue, item.cartDetailId, onRemove, onQuantityChange]);
+      const validatedQuantity = validateQuantity(numValue, item.stock);
+      if (validatedQuantity > 0) {
+        setInputValue(validatedQuantity.toString());
+        setLocalQuantity(validatedQuantity);
+        onQuantityChange(item.cartDetailId, validatedQuantity);
+      } else {
+        setInputValue(item.quantity.toString());
+        setLocalQuantity(item.quantity);
+      }
+    }, [inputValue, item.cartDetailId, item.quantity, item.stock, onQuantityChange]);
 
     const handleInputKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -274,10 +294,20 @@ const CartItemComponent = React.memo(
                     <input
                       ref={inputRef}
                       type="text"
+                      inputMode="numeric"
+                      pattern="[1-9][0-9]*"
                       value={inputValue}
                       onChange={handleInputChange}
                       onBlur={handleInputBlur}
                       onKeyDown={handleInputKeyDown}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const pastedText = e.clipboardData.getData('text');
+                        const numValue = Math.max(1, Math.floor(Math.abs(parseInt(pastedText) || 1)));
+                        if (!isNaN(numValue) && isFinite(numValue) && numValue > 0) {
+                          setInputValue(numValue.toString());
+                        }
+                      }}
                       className="w-14 h-9 text-sm font-semibold text-center border-x-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent"
                       min="1"
                       max={item.stock}

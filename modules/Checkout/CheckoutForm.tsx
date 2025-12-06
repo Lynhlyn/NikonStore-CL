@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowLeft, MapPin, CreditCard, Package, CheckCircle2 } from 'lucide-react';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { useAuth } from '@/lib/hooks/useAuth';
 import {
   useCreateOrderMutation,
@@ -13,6 +15,11 @@ import { useEmailVerification } from '@/common/hooks/useEmailVerification';
 import EmailVerificationModal from '@/common/components/EmailVerificationModal/EmailVerificationModal';
 import type { CreateOrderRequest } from '@/lib/service/modules/orderService/type';
 import { getCookie } from '@/common/utils/cartUtils';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '@/lib/service/store';
+import { fetchCart } from '@/lib/service/modules/cartService';
+import { getCustomerIdFromToken } from '@/lib/service/modules/tokenService';
+import { checkoutSchema, type CheckoutFormData } from './schemas/checkoutSchema';
 import {
   useGetProvincesQuery,
   useGetDistrictsQuery,
@@ -50,6 +57,7 @@ interface CheckoutItem {
 
 export default function CheckoutForm() {
   const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
   const { customerId } = useAuth();
   const [createOrder, { isLoading }] = useCreateOrderMutation();
   const [calculateShippingFee] = useCalculateShippingFeeMutation();
@@ -75,17 +83,32 @@ export default function CheckoutForm() {
     customerData?.data?.shippingAddresses || [];
   const currentAddress = shippingAddresses[selectedAddressId || 0];
 
-  const [formData, setFormData] = useState({
-    recipientName: '',
-    recipientPhone: '',
-    recipientEmail: '',
-    provinceId: null as number | null,
-    districtId: null as number | null,
-    wardCode: null as string | null,
-    detailedAddress: '',
-    notes: '',
-    paymentMethod: 'cod',
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    trigger,
+    formState: { errors },
+  } = useForm<CheckoutFormData>({
+    resolver: yupResolver(checkoutSchema) as any,
+    mode: 'all',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      recipientName: '',
+      recipientPhone: '',
+      recipientEmail: '',
+      provinceId: null,
+      districtId: null,
+      wardCode: null,
+      detailedAddress: '',
+      notes: null,
+      paymentMethod: 'cod',
+    },
   });
+
+  const formData = watch();
 
   const [shippingFee, setShippingFee] = useState(0);
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
@@ -231,13 +254,10 @@ export default function CheckoutForm() {
   }, [customerData, provinces]);
 
   const loadAddressToForm = (address: ShippingAddress) => {
-    setFormData((prev) => ({
-      ...prev,
-      recipientName: address.recipientName,
-      recipientPhone: address.recipientPhoneNumber,
-      recipientEmail: customerData?.data?.email || '',
-      detailedAddress: address.detailedAddress,
-    }));
+    setValue('recipientName', address.recipientName);
+    setValue('recipientPhone', address.recipientPhoneNumber);
+    setValue('recipientEmail', customerData?.data?.email || '');
+    setValue('detailedAddress', address.detailedAddress);
 
     if (provinces.length > 0) {
       const province = provinces.find((p) =>
@@ -245,7 +265,7 @@ export default function CheckoutForm() {
         address.province.toLowerCase().includes(p.name.toLowerCase())
       );
       if (province) {
-        setFormData((prev) => ({ ...prev, provinceId: province.value }));
+        setValue('provinceId', province.value);
       }
     }
   };
@@ -262,10 +282,10 @@ export default function CheckoutForm() {
         currentAddress.district.toLowerCase().includes(d.name.toLowerCase())
       );
       if (district) {
-        setFormData((prev) => ({ ...prev, districtId: district.value }));
+        setValue('districtId', district.value);
       }
     }
-  }, [formData.provinceId, districts, useSavedAddress, currentAddress]);
+  }, [formData.provinceId, districts, useSavedAddress, currentAddress, setValue]);
 
   useEffect(() => {
     if (
@@ -279,10 +299,10 @@ export default function CheckoutForm() {
         currentAddress.ward.toLowerCase().includes(w.name.toLowerCase())
       );
       if (ward) {
-        setFormData((prev) => ({ ...prev, wardCode: ward.value }));
+        setValue('wardCode', ward.value);
       }
     }
-  }, [formData.districtId, wards, useSavedAddress, currentAddress]);
+  }, [formData.districtId, wards, useSavedAddress, currentAddress, setValue]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
@@ -292,71 +312,36 @@ export default function CheckoutForm() {
     return checkoutTotal + shippingFee;
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const getClientIp = async (): Promise<string> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip || '127.0.0.1';
+    } catch (error) {
+      console.error('Error fetching IP address:', error);
+      return '127.0.0.1';
+    }
   };
 
-  const validateForm = (): boolean => {
-    if (!formData.recipientName.trim()) {
-      toast.error('Vui lòng nhập tên người nhận');
-      return false;
-    }
-    if (!formData.recipientPhone.trim()) {
-      toast.error('Vui lòng nhập số điện thoại');
-      return false;
-    }
-    if (!/^[0-9]{10,11}$/.test(formData.recipientPhone.replace(/\s/g, ''))) {
-      toast.error('Số điện thoại không hợp lệ');
-      return false;
-    }
-    if (!formData.recipientEmail.trim()) {
-      toast.error('Vui lòng nhập email');
-      return false;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.recipientEmail)) {
-      toast.error('Email không hợp lệ');
-      return false;
-    }
-    if (!formData.provinceId) {
-      toast.error('Vui lòng chọn tỉnh/thành phố');
-      return false;
-    }
-    if (!formData.districtId) {
-      toast.error('Vui lòng chọn quận/huyện');
-      return false;
-    }
-    if (!formData.wardCode) {
-      toast.error('Vui lòng chọn phường/xã');
-      return false;
-    }
-    if (!formData.detailedAddress.trim()) {
-      toast.error('Vui lòng nhập địa chỉ chi tiết');
-      return false;
-    }
-    return true;
-  };
-
-  const handlePlaceOrder = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
+  const onSubmit = async (data: CheckoutFormData) => {
     if (checkoutItems.length === 0) {
       toast.error('Không có sản phẩm nào để đặt hàng');
       return;
     }
 
-    const email = customerId ? customerData?.data?.email || formData.recipientEmail : formData.recipientEmail;
-    const customerName = formData.recipientName;
+    const email = customerId ? customerData?.data?.email || data.recipientEmail : data.recipientEmail;
+    const customerName = data.recipientName;
 
     const shippingAddress = [
-      formData.detailedAddress,
+      data.detailedAddress,
       selectedWard?.name,
       selectedDistrict?.name,
       selectedProvince?.name,
     ]
       .filter(Boolean)
       .join(', ');
+
+    const ipAddress = await getClientIp();
 
     const orderData: CreateOrderRequest = {
       customerId: customerId || null,
@@ -366,17 +351,18 @@ export default function CheckoutForm() {
         quantity: item.quantity,
       })),
       shippingAddress,
-      paymentMethod: formData.paymentMethod.toUpperCase(),
+      paymentMethod: data.paymentMethod.toUpperCase(),
       voucherId: null,
       discount: null,
-      notes: formData.notes || null,
-      recipientName: formData.recipientName,
-      recipientPhone: formData.recipientPhone,
-      recipientEmail: formData.recipientEmail,
+      notes: data.notes || null,
+      recipientName: data.recipientName,
+      recipientPhone: data.recipientPhone,
+      recipientEmail: data.recipientEmail,
       shippingFee: shippingFee,
       orderType: 'ONLINE',
-      toDistrictId: formData.districtId || undefined,
-      toWardCode: formData.wardCode || undefined,
+      toDistrictId: data.districtId || undefined,
+      toWardCode: data.wardCode || undefined,
+      ipAddress: ipAddress,
     };
 
     setPendingOrderData(orderData);
@@ -393,6 +379,8 @@ export default function CheckoutForm() {
     }
   };
 
+  const handlePlaceOrder = handleSubmit(onSubmit);
+
   const handleVerificationSuccess = async () => {
     if (!pendingOrderData) return;
 
@@ -402,6 +390,16 @@ export default function CheckoutForm() {
       localStorage.setItem('orderData', JSON.stringify(order));
       localStorage.removeItem('checkoutItems');
       localStorage.removeItem('checkoutTotal');
+
+      const customerIdForCart = customerId || getCustomerIdFromToken();
+      const cookieId = getCookie('cookieId');
+      
+      if (customerIdForCart || cookieId) {
+        dispatch(fetchCart({
+          customerId: customerIdForCart || undefined,
+          cookieId: cookieId || undefined,
+        }));
+      }
 
       if (order.paymentUrl) {
         window.location.href = order.paymentUrl;
@@ -558,15 +556,12 @@ export default function CheckoutForm() {
                                 onClick={() => {
                                   setIsEditingAddress(false);
                                   setUseSavedAddress(false);
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    recipientName: '',
-                                    recipientPhone: '',
-                                    detailedAddress: '',
-                                    provinceId: null,
-                                    districtId: null,
-                                    wardCode: null,
-                                  }));
+                                  setValue('recipientName', '');
+                                  setValue('recipientPhone', '');
+                                  setValue('detailedAddress', '');
+                                  setValue('provinceId', null);
+                                  setValue('districtId', null);
+                                  setValue('wardCode', null);
                                 }}
                               >
                                 Nhập mới
@@ -618,13 +613,15 @@ export default function CheckoutForm() {
                       </label>
                       <input
                         type="text"
-                        value={formData.recipientName}
-                        onChange={(e) =>
-                          handleInputChange('recipientName', e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        {...register('recipientName')}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          errors.recipientName ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         placeholder="Nhập họ và tên"
                       />
+                      {errors.recipientName && (
+                        <p className="mt-1 text-sm text-red-500">{errors.recipientName.message}</p>
+                      )}
                     </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -634,11 +631,15 @@ export default function CheckoutForm() {
                     </label>
                     <input
                       type="tel"
-                      value={formData.recipientPhone}
-                      onChange={(e) => handleInputChange('recipientPhone', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      {...register('recipientPhone')}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.recipientPhone ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="0123456789"
                     />
+                    {errors.recipientPhone && (
+                      <p className="mt-1 text-sm text-red-500">{errors.recipientPhone.message}</p>
+                    )}
                   </div>
 
                   <div>
@@ -647,11 +648,15 @@ export default function CheckoutForm() {
                     </label>
                     <input
                       type="email"
-                      value={formData.recipientEmail}
-                      onChange={(e) => handleInputChange('recipientEmail', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      {...register('recipientEmail')}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.recipientEmail ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="example@email.com"
                     />
+                    {errors.recipientEmail && (
+                      <p className="mt-1 text-sm text-red-500">{errors.recipientEmail.message}</p>
+                    )}
                   </div>
                 </div>
 
@@ -659,32 +664,40 @@ export default function CheckoutForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tỉnh/Thành phố <span className="text-red-500">*</span>
                   </label>
-                  <Select
-                    value={formData.provinceId?.toString() || ''}
-                    onValueChange={(value) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        provinceId: Number(value),
-                        districtId: null,
-                        wardCode: null,
-                      }));
-                    }}
-                    disabled={provincesLoading}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Chọn tỉnh/thành phố" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {provinces.map((province) => (
-                        <SelectItem
-                          key={province.id}
-                          value={province.value.toString()}
-                        >
-                          {province.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="provinceId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value?.toString() || ''}
+                        onValueChange={(value) => {
+                          field.onChange(Number(value));
+                          setValue('districtId', null);
+                          setValue('wardCode', null);
+                        }}
+                        disabled={provincesLoading}
+                      >
+                        <SelectTrigger className={`w-full ${
+                          errors.provinceId ? 'border-red-500' : ''
+                        }`}>
+                          <SelectValue placeholder="Chọn tỉnh/thành phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {provinces.map((province) => (
+                            <SelectItem
+                              key={province.id}
+                              value={province.value.toString()}
+                            >
+                              {province.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.provinceId && (
+                    <p className="mt-1 text-sm text-red-500">{errors.provinceId.message}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -692,58 +705,72 @@ export default function CheckoutForm() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Quận/Huyện <span className="text-red-500">*</span>
                     </label>
-                    <Select
-                      value={formData.districtId?.toString() || ''}
-                      onValueChange={(value) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          districtId: Number(value),
-                          wardCode: null,
-                        }));
-                      }}
-                      disabled={!formData.provinceId || districtsLoading}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Chọn quận/huyện" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {districts.map((district) => (
-                          <SelectItem
-                            key={district.id}
-                            value={district.value.toString()}
-                          >
-                            {district.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      name="districtId"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value?.toString() || ''}
+                          onValueChange={(value) => {
+                            field.onChange(Number(value));
+                            setValue('wardCode', null);
+                          }}
+                          disabled={!formData.provinceId || districtsLoading}
+                        >
+                          <SelectTrigger className={`w-full ${
+                            errors.districtId ? 'border-red-500' : ''
+                          }`}>
+                            <SelectValue placeholder="Chọn quận/huyện" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {districts.map((district) => (
+                              <SelectItem
+                                key={district.id}
+                                value={district.value.toString()}
+                              >
+                                {district.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {errors.districtId && (
+                      <p className="mt-1 text-sm text-red-500">{errors.districtId.message}</p>
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Phường/Xã <span className="text-red-500">*</span>
                     </label>
-                    <Select
-                      value={formData.wardCode || ''}
-                      onValueChange={(value) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          wardCode: value,
-                        }));
-                      }}
-                      disabled={!formData.districtId || wardsLoading}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Chọn phường/xã" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {wards.map((ward) => (
-                          <SelectItem key={ward.id} value={ward.value}>
-                            {ward.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      name="wardCode"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value || ''}
+                          onValueChange={field.onChange}
+                          disabled={!formData.districtId || wardsLoading}
+                        >
+                          <SelectTrigger className={`w-full ${
+                            errors.wardCode ? 'border-red-500' : ''
+                          }`}>
+                            <SelectValue placeholder="Chọn phường/xã" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {wards.map((ward) => (
+                              <SelectItem key={ward.id} value={ward.value}>
+                                {ward.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {errors.wardCode && (
+                      <p className="mt-1 text-sm text-red-500">{errors.wardCode.message}</p>
+                    )}
                   </div>
                 </div>
 
@@ -753,11 +780,15 @@ export default function CheckoutForm() {
                   </label>
                   <input
                     type="text"
-                    value={formData.detailedAddress}
-                    onChange={(e) => handleInputChange('detailedAddress', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    {...register('detailedAddress')}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.detailedAddress ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="Số nhà, tên đường"
                   />
+                  {errors.detailedAddress && (
+                    <p className="mt-1 text-sm text-red-500">{errors.detailedAddress.message}</p>
+                  )}
                 </div>
 
                 <div>
@@ -765,12 +796,16 @@ export default function CheckoutForm() {
                     Ghi chú (tùy chọn)
                   </label>
                   <textarea
-                    value={formData.notes}
-                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                    {...register('notes')}
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.notes ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="Ghi chú về đơn hàng..."
                   />
+                  {errors.notes && (
+                    <p className="mt-1 text-sm text-red-500">{errors.notes.message}</p>
+                  )}
                 </div>
                   </>
                 )}
@@ -788,26 +823,29 @@ export default function CheckoutForm() {
               </div>
 
               <div className="space-y-3">
-                <label className="flex items-start p-4 border-2 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="cod"
-                    checked={formData.paymentMethod === 'cod'}
-                    onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0 ${
-                      formData.paymentMethod === 'cod'
-                        ? 'border-blue-600 bg-[#ff8600]'
-                        : 'border-gray-300'
-                    }`}
-                  >
-                    {formData.paymentMethod === 'cod' && (
-                      <div className="w-2 h-2 rounded-full bg-white"></div>
-                    )}
-                  </div>
+                <Controller
+                  name="paymentMethod"
+                  control={control}
+                  render={({ field }) => (
+                    <label className="flex items-start p-4 border-2 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        value="cod"
+                        checked={field.value === 'cod'}
+                        onChange={() => field.onChange('cod')}
+                        className="sr-only"
+                      />
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5 shrink-0 ${
+                          field.value === 'cod'
+                            ? 'border-blue-600 bg-[#ff8600]'
+                            : 'border-gray-300'
+                        }`}
+                      >
+                        {field.value === 'cod' && (
+                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                        )}
+                      </div>
                   <div className="flex items-start gap-3 flex-1">
                     <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
                       <Package className="w-6 h-6 text-orange-600" />
@@ -821,8 +859,52 @@ export default function CheckoutForm() {
                       </div>
                     </div>
                   </div>
-                </label>
+                    </label>
+                  )}
+                />
+                <Controller
+                  name="paymentMethod"
+                  control={control}
+                  render={({ field }) => (
+                    <label className="flex items-start p-4 border-2 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        value="vnpay"
+                        checked={field.value === 'vnpay'}
+                        onChange={() => field.onChange('vnpay')}
+                        className="sr-only"
+                      />
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5 shrink-0 ${
+                          field.value === 'vnpay'
+                            ? 'border-blue-600 bg-blue-600'
+                            : 'border-gray-300'
+                        }`}
+                      >
+                        {field.value === 'vnpay' && (
+                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                        )}
+                      </div>
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <CreditCard className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900 mb-1">
+                        Thanh toán trực tuyến
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Thanh toán online qua thẻ ATM, Visa, Mastercard
+                      </div>
+                    </div>
+                  </div>
+                    </label>
+                  )}
+                />
               </div>
+              {errors.paymentMethod && (
+                <p className="mt-1 text-sm text-red-500">{errors.paymentMethod.message}</p>
+              )}
             </div>
           </div>
 
@@ -935,7 +1017,7 @@ export default function CheckoutForm() {
       <EmailVerificationModal
         isOpen={showVerificationModal}
         email={verificationEmail}
-        customerName={formData.recipientName}
+        customerName={formData.recipientName || ''}
         onClose={() => setShowVerificationModal(false)}
         onVerificationSuccess={handleVerificationSuccess}
       />

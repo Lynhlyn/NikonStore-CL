@@ -52,7 +52,7 @@ export function Footer() {
             </div>
             <p className="text-sm text-gray-400 max-w-md leading-relaxed">
               Đại lý chính thức của Nikon tại Việt Nam - Chúng tôi cam kết cung
-              cấp máy ảnh, ống kính và phụ kiện chính hãng với chất lượng cao
+              cấp balo, cặp, túi xách chính hãng với chất lượng cao
               nhất và dịch vụ bảo hành uy tín.
             </p>
             <div className="flex flex-col space-y-3 mt-6">
@@ -62,32 +62,12 @@ export function Footer() {
               </div>
               <div className="flex items-center space-x-3 text-sm text-gray-300">
                 <Mail className="h-5 w-5 text-[#FF6B00]" />
-                <span>info@nikonstore.vn</span>
+                <span>info@nikonstore.com</span>
               </div>
               <div className="flex items-center space-x-3 text-sm text-gray-300">
                 <MapPin className="h-5 w-5 text-[#FF6B00]" />
-                <span>123 Đường ABC, Quận XYZ, TP.HCM</span>
+                <span>123 Đường ABC, Quận XYZ, TP.HÀ NỘI</span>
               </div>
-            </div>
-            <div className="flex space-x-4 mt-6">
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#FF6B00] transition-colors"
-              >
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#FF6B00] transition-colors"
-              >
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#FF6B00] transition-colors"
-              >
-                <Youtube className="h-5 w-5" />
-              </a>
             </div>
           </div>
 
