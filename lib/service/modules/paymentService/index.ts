@@ -1,3 +1,23 @@
+export async function handlePaymentSuccess(trackingNumber: string): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/payment/success?trackingNumber=${trackingNumber}`,
+      {
+        method: 'POST',
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    return await response.text();
+  } catch (error) {
+    console.error('Error handling payment success:', error);
+    return null;
+  }
+}
+
 export async function handlePaymentFailed(trackingNumber: string): Promise<string | null> {
   try {
     const response = await fetch(

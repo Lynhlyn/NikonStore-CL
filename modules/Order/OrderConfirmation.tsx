@@ -8,8 +8,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useRetryVnpayPayment } from "@/common/hooks/useRetryVnpayPayment"
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGetOrderByIdQuery } from "@/lib/service/modules/orderService"
+import { handlePaymentSuccess } from "@/lib/service/modules/paymentService"
 import { toast } from "sonner"
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/lib/service/store";
@@ -59,10 +60,17 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
   
   const [hasLoadedApiStatus, setHasLoadedApiStatus] = useState(false);
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
+  const [vnpaySuccessFromUrl, setVnpaySuccessFromUrl] = useState<boolean | null>(null);
+  const hasProcessedCallbackRef = useRef(false);
 
   const trackingNumber = initialOrderData?.trackingNumber;
   const orderId = initialOrderData?.orderId ?? orderData?.orderId;
-  const displayPaymentStatus = currentPaymentStatus || orderData?.paymentStatus;
+  
+  const vnpResponseCode = searchParams.get('vnp_ResponseCode');
+  const vnpTransactionStatus = searchParams.get('vnp_TransactionStatus');
+  const isVnpaySuccess = vnpResponseCode === '00' && vnpTransactionStatus === '00';
+  
+  const displayPaymentStatus = vnpaySuccessFromUrl === true ? 'completed' : (currentPaymentStatus || orderData?.paymentStatus);
 
   const { data: freshOrderData, refetch: refetchOrder } = useGetOrderByIdQuery(orderId!, {
     skip: !orderId
@@ -211,20 +219,59 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
   useEffect(() => {
     const refreshAfterCallback = async () => {
       const vnpResponseCode = searchParams.get('vnp_ResponseCode');
+      const vnpTransactionStatus = searchParams.get('vnp_TransactionStatus');
       const vnpTxnRef = searchParams.get('vnp_TxnRef');
       
-      if (trackingNumber && (vnpResponseCode || vnpTxnRef)) {
-
-        setIsRefreshing(true);
+      if (trackingNumber && (vnpResponseCode || vnpTxnRef) && !hasProcessedCallbackRef.current) {
+        hasProcessedCallbackRef.current = true;
+        const isSuccess = vnpResponseCode === '00' && vnpTransactionStatus === '00';
         
-        toast('🔄 Đang kiểm tra kết quả thanh toán...', {
-          duration: 2000,
-        });
-        
-        setTimeout(async () => {
-          await checkStatus();
-          setIsRefreshing(false);
-        }, 3000);
+        if (isSuccess) {
+          setVnpaySuccessFromUrl(true);
+          setCurrentPaymentStatus('completed');
+          
+          toast.success('🎉 Thanh toán thành công! Đang cập nhật thông tin...', {
+            duration: 3000,
+          });
+          
+          setIsRefreshing(true);
+          
+          try {
+            await handlePaymentSuccess(trackingNumber);
+            
+            await checkStatus();
+            const fullData = await fetchFullOrderData();
+            if (fullData) {
+              setOrderData(fullData);
+            }
+            
+            const customerIdForCart = customerId || getCustomerIdFromToken();
+            const cookieId = getCookie('cookieId');
+            
+            if (customerIdForCart || cookieId) {
+              dispatch(fetchCart({
+                customerId: customerIdForCart || undefined,
+                cookieId: cookieId || undefined,
+              }));
+            }
+          } catch (error) {
+            console.error('Error handling payment success:', error);
+            toast.error('Có lỗi xảy ra khi cập nhật trạng thái đơn hàng');
+          } finally {
+            setIsRefreshing(false);
+          }
+        } else if (vnpResponseCode && vnpResponseCode !== '00') {
+          setIsRefreshing(true);
+          
+          toast('🔄 Đang kiểm tra kết quả thanh toán...', {
+            duration: 2000,
+          });
+          
+          setTimeout(async () => {
+            await checkStatus();
+            setIsRefreshing(false);
+          }, 3000);
+        }
       }
     };
 
@@ -234,26 +281,27 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
   useEffect(() => {
     if (!trackingNumber || !orderData) return;
     
+    if (isVnpaySuccess || vnpaySuccessFromUrl === true) {
+      return;
+    }
+    
     const shouldPoll = orderData.paymentMethod === 'VNPAY' && 
                       (currentPaymentStatus === 'PENDING' || currentPaymentStatus === 'UNPAID') &&
                       pollCount < 20;
     
     if (!shouldPoll) return;
-
-    
     
     const pollInterval = setInterval(async () => {
       const statusData = await checkStatus();
       setPollCount(prev => prev + 1);
       
       if (statusData && (statusData.paymentStatus === 'completed' || statusData.paymentStatus === 'SUCCESS')) {
-
         clearInterval(pollInterval);
       }
     }, 30000);
 
     return () => clearInterval(pollInterval);
-  }, [trackingNumber, orderData, currentPaymentStatus, pollCount]);
+  }, [trackingNumber, orderData, currentPaymentStatus, pollCount, isVnpaySuccess, vnpaySuccessFromUrl]);
 
   const handleRefreshOrder = async () => {
     setIsRefreshing(true);
@@ -348,7 +396,7 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
           <div className={`flex-1 h-0.5 mx-2 sm:mx-4 mt-[-20px] ${
             displayPaymentStatus === "completed" || orderData?.paymentStatus === "completed"
               ? 'bg-green-600'
-              : orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
+              : orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
                 ? 'bg-red-400'
                 : 'bg-green-600'
           }`}></div>
@@ -357,13 +405,13 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
             <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
               displayPaymentStatus === "completed" || orderData?.paymentStatus === "completed"
                 ? 'bg-green-600'
-                : orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
+                : orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
                   ? 'bg-red-400'
                   : 'bg-green-600'
             }`}>
               {displayPaymentStatus === "completed" || orderData?.paymentStatus === "completed" ? (
                 <Check className="w-4 h-4 text-white" />
-              ) : orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID') ? (
+              ) : orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID') ? (
                 <div className="w-4 h-4 text-white">❌</div>
               ) : (
                 <Check className="w-4 h-4 text-white" />
@@ -372,13 +420,13 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
             <span className={`font-medium text-xs sm:text-sm text-center ${
               displayPaymentStatus === "completed" || orderData?.paymentStatus === "completed"
                 ? 'text-green-600'
-                : orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
+                : orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
                   ? 'text-red-600'
                   : 'text-green-600'
             }`}>
               {displayPaymentStatus === "completed" || orderData?.paymentStatus === "completed"
                 ? 'Hoàn thành'
-                : orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
+                : orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
                   ? 'Thanh toán thất bại'
                   : 'Hoàn thành'}
             </span>
@@ -391,13 +439,13 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
           <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
             displayPaymentStatus === "completed" || orderData?.paymentStatus === "completed"
               ? 'bg-green-100'
-              : orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
+              : orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
                 ? 'bg-red-100'
                 : 'bg-green-100'
           }`}>
             {displayPaymentStatus === "completed" || orderData?.paymentStatus === "completed" ? (
               <Check className="w-8 h-8 text-green-600" />
-            ) : orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID') ? (
+            ) : orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID') ? (
               <div className="w-8 h-8 text-red-600 text-2xl">❌</div>
             ) : (
               <Check className="w-8 h-8 text-green-600" />
@@ -408,7 +456,7 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
               ? 'Đang cập nhật trạng thái...'
               : displayPaymentStatus === "completed" || orderData?.paymentStatus === "completed"
                 ? 'Thanh toán thành công!'
-                : orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
+                : orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
               ? 'Thanh toán thất bại'
               : 'Đặt hàng thành công!'}
           </h1>
@@ -417,7 +465,7 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
               ? 'Vui lòng chờ trong giây lát...'
               : displayPaymentStatus === "completed" || orderData?.paymentStatus === "completed"
                 ? 'Đơn hàng của bạn đã được thanh toán và xác nhận thành công!'
-                : orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
+                : orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')
               ? 'Thanh toán của bạn không thành công. Vui lòng thử lại hoặc chọn phương thức thanh toán khác.'
               : 'Cảm ơn bạn đã tin tưởng và đặt hàng tại Nikon Store'}
           </p>
@@ -548,7 +596,7 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
               </div>
 
               <div className="mt-6 pt-6 border-t border-gray-200">
-                 {(orderData?.paymentMethod === 'VNPAY' && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')) && (
+                 {(orderData?.paymentMethod === 'VNPAY' && !isVnpaySuccess && (displayPaymentStatus === 'PENDING' || displayPaymentStatus === 'UNPAID')) && (
                    <div className="p-4 rounded-lg mb-4 bg-red-50 border border-red-200">
                      <div className="flex items-center">
                        <div className="w-5 h-5 mr-2 text-red-600">❌</div>
@@ -561,6 +609,7 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
 
                 <div className="space-y-3">
                   {orderData?.paymentMethod === "VNPAY" && 
+                   !isVnpaySuccess &&
                    (displayPaymentStatus === "PENDING" || displayPaymentStatus === "UNPAID") ? (
                     <>
                       {(isLoadingStatus || !hasLoadedApiStatus) ? (

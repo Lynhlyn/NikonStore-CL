@@ -10,6 +10,7 @@ import {
   Youtube,
 } from "lucide-react";
 import { useGetAllPagesQuery } from "@/lib/service/modules/pageService";
+import { ContactForm } from "./ContactForm";
 
 export function Footer() {
   const { data: pages = [], isError } = useGetAllPagesQuery();
@@ -22,22 +23,17 @@ export function Footer() {
     <footer className="bg-[#1a1a1a] text-white">
       {/* Newsletter Section */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 md:py-12">
-        <div className="bg-gradient-to-r from-[#CC0000] to-[#FF3333] rounded-xl p-6 md:p-10 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-2">
-            Đăng ký nhận thông tin khuyến mãi
-          </h2>
-          <p className="text-sm md:text-base mb-6 opacity-90">
-            Nhận thông tin về sản phẩm mới và ưu đãi đặc biệt!
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Nhập email của bạn"
-              className="flex-1 px-4 py-3 rounded-lg bg-white/95 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white"
-            />
-            <button className="px-6 py-3 bg-white text-[#CC0000] font-semibold rounded-lg hover:bg-gray-100 transition-colors">
-              Đăng ký
-            </button>
+        <div className="bg-gradient-to-r from-[#CC0000] to-[#FF3333] rounded-xl p-6 md:p-10">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">
+              Đăng ký nhận thông tin khuyến mãi
+            </h2>
+            <p className="text-sm md:text-base opacity-90">
+              Nhận thông tin về sản phẩm mới và ưu đãi đặc biệt!
+            </p>
+          </div>
+          <div className="max-w-2xl mx-auto">
+            <ContactForm />
           </div>
         </div>
       </div>
