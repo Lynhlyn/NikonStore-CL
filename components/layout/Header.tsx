@@ -4,11 +4,12 @@ import { ChevronDown, LogOut, Menu, ShoppingCart as ShoppingCartIcon, User, X, S
 import Loader from "@/components/common/Loader"
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useRef, useState, useMemo } from "react"
+import { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useFetchCurrentCustomerQuery } from "@/lib/service/modules/customerService"
 import { useFetchAllCategoriesQuery } from "@/lib/service/modules/categoryService"
+import type { Category } from "@/lib/service/modules/categoryService/type"
 import { useFetchProductsQuery } from "@/lib/service/modules/productService"
 import { useSelector } from "react-redux"
 import { RootState } from "@/lib/service/store"
@@ -227,13 +228,40 @@ export function Header() {
 
     const { data: categoriesData } = useFetchAllCategoriesQuery()
 
-    // Build navigation items with dynamic categories
+    const buildCategoryTree = useCallback((categories: Category[]): NavItem[] => {
+        const categoryMap = new Map<number, NavItem>()
+        const rootCategories: NavItem[] = []
+
+        categories.forEach((category) => {
+            const navItem: NavItem = {
+                label: category.name,
+                href: `/products?categoryId=${category.id}`,
+                hasChildren: false,
+                children: [],
+            }
+            categoryMap.set(category.id, navItem)
+        })
+
+        categories.forEach((category) => {
+            const navItem = categoryMap.get(category.id)!
+            if (category.parentId && categoryMap.has(category.parentId)) {
+                const parentItem = categoryMap.get(category.parentId)!
+                if (!parentItem.children) {
+                    parentItem.children = []
+                }
+                parentItem.children.push(navItem)
+                parentItem.hasChildren = true
+            } else {
+                rootCategories.push(navItem)
+            }
+        })
+
+        return rootCategories
+    }, [])
+
     const navItems: NavItem[] = useMemo(() => {
         const categoryChildren = categoriesData?.data
-            ? categoriesData.data.map((category) => ({
-                  label: category.name,
-                  href: `/products?categoryId=${category.id}`,
-              }))
+            ? buildCategoryTree(categoriesData.data)
             : []
 
         return [
@@ -250,7 +278,7 @@ export function Header() {
             { label: "Hỗ trợ", href: "/faqs" },
             { label: "Tra cứu đơn hàng", href: "/order/track" },
         ]
-    }, [categoriesData, token])
+    }, [categoriesData, token, buildCategoryTree])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
