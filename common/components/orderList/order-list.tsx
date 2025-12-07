@@ -17,6 +17,7 @@ import useDebounce from "@/common/hooks/useDebounce"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/shadcn/components/ui/select"
 import { getOrderStatusLabel, getOrderStatusColors } from "@/common/utils/orderStatusMapper"
+import { formatNote } from "@/lib/utils"
 import { getPaymentMethodLabel } from "@/common/utils/paymentMethodMapper"
 
 interface OrderListProps {
@@ -303,7 +304,7 @@ export function OrderList({ onSelectOrder }: OrderListProps) {
                         <span className="text-amber-600 text-lg">📝</span>
                         <div>
                           <span className="text-xs font-semibold text-amber-800 uppercase">Ghi chú:</span>
-                          <p className="text-sm text-amber-900 mt-1">{order.note}</p>
+                          <p className="text-sm text-amber-900 mt-1">{formatNote(order.note)}</p>
                         </div>
                       </div>
                     </div>

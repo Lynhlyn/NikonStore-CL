@@ -25,3 +25,10 @@ export const genderMapper = {
     return map[gender] || gender
   },
 }
+
+export const formatNote = (note: string | null | undefined): string => {
+  if (!note || note.trim() === "" || note.trim().toLowerCase() === "null") {
+    return "Không có"
+  }
+  return note.trim()
+}

@@ -29,7 +29,7 @@ export default function CTASection() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-2 border-white text-white hover:bg-white/10 text-base px-8 py-6 flex items-center gap-2"
+                className="border-2 border-white text-white !bg-white/10 text-base px-8 py-6 flex items-center gap-2"
               >
                 Xem khuyến mãi
                 <ArrowRight className="w-5 h-5" />

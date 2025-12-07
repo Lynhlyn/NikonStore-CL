@@ -12,6 +12,7 @@ import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { getPaymentMethodLabel } from "@/common/utils/paymentMethodMapper"
 import { getOrderStatusLabel, getOrderStatusColors, OrderStatus } from "@/common/utils/orderStatusMapper"
+import { formatNote } from "@/lib/utils"
 import { ProductReview } from "./ProductReview"
 import { QuickReviewModal } from "./QuickReviewModal"
 import { toast } from "sonner"
@@ -347,7 +348,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
               <h2 className="text-lg sm:text-xl font-semibold text-yellow-800">Ghi chú đơn hàng</h2>
             </div>
             <div className="bg-white rounded-lg p-3 sm:p-4 border border-yellow-200">
-              <p className="text-sm sm:text-base text-gray-800 font-medium break-words">{order.note}</p>
+              <p className="text-sm sm:text-base text-gray-800 font-medium break-words">{formatNote(order.note)}</p>
             </div>
           </Card>
         )}

@@ -84,7 +84,7 @@ const ProfilePage = () => {
     }
 
     const errors: Record<string, string> = {}
-    const { username, fullName, email, phoneNumber, gender } = currentUser.data
+    const { username, fullName, email, phoneNumber, gender, dateOfBirth } = currentUser.data
     if (!username || !username.trim()) {
       errors.username = 'Tên đăng nhập không được để trống.'
     }
@@ -100,6 +100,14 @@ const ProfilePage = () => {
       errors.phone = 'Số điện thoại không được để trống.'
     } else if (!/^0\d{9}$/.test(phoneNumber)) {
       errors.phone = 'Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và đủ 10 số.'
+    }
+    if (dateOfBirth) {
+      const birthDate = new Date(dateOfBirth)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (birthDate > today) {
+        errors.dateOfBirth = 'Ngày sinh không được sau thời gian hiện tại'
+      }
     }
     if (!gender || !gender.trim()) {
       errors.gender = 'Giới tính không được để trống.'

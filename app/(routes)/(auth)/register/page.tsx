@@ -36,6 +36,16 @@ export default function RegisterPage() {
       return
     }
 
+    if (dateOfBirth) {
+      const birthDate = new Date(dateOfBirth)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (birthDate > today) {
+        toast.error("Ngày sinh không được sau thời gian hiện tại")
+        return
+      }
+    }
+
     setIsLoading(true)
 
     try {
@@ -181,6 +191,7 @@ export default function RegisterPage() {
                   type="date"
                   value={dateOfBirth}
                   onChange={(e) => setDateOfBirth(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent transition-all duration-200 text-sm"
                 />
               </div>

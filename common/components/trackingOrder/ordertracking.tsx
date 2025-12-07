@@ -14,6 +14,7 @@ import { useEmailVerification } from '../../hooks/useEmailVerification';
 import EmailVerificationModal from '../EmailVerificationModal/EmailVerificationModal';
 import { getOrderStatusLabel, getOrderStatusColors } from '@/common/utils/orderStatusMapper';
 import { getPaymentMethodLabel } from '@/common/utils/paymentMethodMapper';
+import { formatNote } from '@/lib/utils';
 
 export default function OrderTracking() {
   const [orderNumber, setOrderNumber] = useState('');
@@ -332,7 +333,7 @@ export default function OrderTracking() {
                     <h2 className="text-lg sm:text-xl font-semibold text-yellow-800">Ghi chú đơn hàng</h2>
                   </div>
                   <div className="bg-white rounded-lg p-3 sm:p-4 border border-yellow-200">
-                    <p className="text-sm sm:text-base text-gray-800 font-medium break-words">{orderData.note}</p>
+                    <p className="text-sm sm:text-base text-gray-800 font-medium break-words">{formatNote(orderData.note)}</p>
                   </div>
                 </Card>
               )}

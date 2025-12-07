@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useDeleteCustomerAccountMutation } from '../../../lib/service/modules/customerService'
 import { toast } from 'sonner'
 import { tokenManager } from '../../utils/tokenManager'
@@ -27,11 +27,16 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 }) => {
   const { username, email, fullName, phoneNumber, urlImage, dateOfBirth, gender: genderFromBackend } = user?.data || {}
   const displayErrors = { ...errors }
-  const gender = genderMapper.toVietnamese(genderFromBackend)
+  const genderFromBackendVietnamese = genderMapper.toVietnamese(genderFromBackend)
 
   const [showConfirm, setShowConfirm] = useState(false)
   const [pendingEvent, setPendingEvent] = useState<React.FormEvent | null>(null)
   const [localErrors, setLocalErrors] = useState<{ [key: string]: string }>({})
+  const [gender, setGender] = useState<string>(genderFromBackendVietnamese || '')
+
+  useEffect(() => {
+    setGender(genderFromBackendVietnamese || '')
+  }, [genderFromBackendVietnamese])
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteReason, setDeleteReason] = useState('')
@@ -48,6 +53,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     if (!phoneNumber || phoneNumber.trim() === '') errs.phone = 'Số điện thoại không được để trống'
     else if (!/^0\d{9}$/.test(phoneNumber)) errs.phone = 'Số điện thoại phải gồm 10 số và bắt đầu bằng 0'
     if (!dateOfBirth) errs.dateOfBirth = 'Ngày sinh không được để trống'
+    else {
+      const birthDate = new Date(dateOfBirth)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (birthDate > today) {
+        errs.dateOfBirth = 'Ngày sinh không được sau thời gian hiện tại'
+      }
+    }
     if (!gender) errs.gender = 'Vui lòng chọn giới tính'
     return errs
   }
@@ -139,6 +152,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       e.target.value = val
     }
     if (name === 'gender') {
+      setGender(value)
       const englishGender = genderMapper.toEnglish(value)
       const syntheticEvent = {
         ...e,
@@ -148,6 +162,16 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
         },
       } as React.ChangeEvent<HTMLInputElement>
       onChange(syntheticEvent)
+      if (localErrors['gender']) {
+        setLocalErrors(prev => {
+          const newErrs = { ...prev }
+          delete newErrs['gender']
+          return newErrs
+        })
+      }
+      if (typeof onClearFieldError === 'function') {
+        onClearFieldError('gender')
+      }
       return
     }
     if (localErrors[name]) {
@@ -330,6 +354,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 name="dateOfBirth"
                 value={dateOfBirth || ''}
                 onChange={handleInputChange}
+                max={new Date().toISOString().split('T')[0]}
                 className={`w-full px-3 py-2.5 lg:py-3 border rounded-lg focus:ring-2 focus:ring-[#FF6B00] focus:border-[#FF6B00] transition-colors text-sm lg:text-base ${mergedErrors.dateOfBirth ? 'border-red-500' : 'border-gray-300'}`}
               />
               {mergedErrors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{mergedErrors.dateOfBirth}</p>}
