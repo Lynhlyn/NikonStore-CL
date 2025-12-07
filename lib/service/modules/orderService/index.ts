@@ -119,7 +119,7 @@ export const orderApi = apiSlice.injectEndpoints({
       query: ({ orderId, afterStatus }) => ({
         url: `${orderEndpoint}/${orderId}/status`,
         method: 'PUT',
-        body: { afterStatus },
+        body: { orderId, afterStatus },
       }),
       transformResponse: (response: { data: any }) => response.data,
       invalidatesTags: ['Order'],

@@ -1,17 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card } from "@/core/shadcn/components/ui/card"
 import { Button } from "@/core/shadcn/components/ui/button"
 import { Textarea } from "@/core/shadcn/components/ui/textarea"
 import { Badge } from "@/core/shadcn/components/ui/badge"
 import { StarRating } from "./StarRating"
 import { useCreateReviewMutation, useFetchReviewsByProductIdQuery } from "@/lib/service/modules/reviewService"
+import { useUploadImagesMutation } from "@/lib/service/modules/uploadService"
 import { toast } from "sonner"
 import Image from "next/image"
 import { format } from "date-fns"
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2, X, Image as ImageIcon } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
+import { ImagePreviewModal } from "../review/ImagePreviewModal"
 
 interface ProductReviewProps {
   productId: number
@@ -24,8 +26,12 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
   const { customerId } = useAuth()
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState("")
+  const [selectedImages, setSelectedImages] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [hasReviewed, setHasReviewed] = useState(false)
   const [createReview, { isLoading }] = useCreateReviewMutation()
+  const [uploadImages, { isLoading: isUploading }] = useUploadImagesMutation()
   const { data: reviewsData, refetch } = useFetchReviewsByProductIdQuery({
     productId,
     status: 1,
@@ -33,18 +39,71 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
     size: 10,
   })
 
+  const [reviewImages, setReviewImages] = useState<{ id: number; imageUrl: string }[]>([])
+
   useEffect(() => {
-    if (reviewsData?.data && customerId) {
-      const userReview = reviewsData.data.find(
-        (review) => review.customer.id === customerId && review.productId === productId
-      )
-      if (userReview) {
-        setHasReviewed(true)
-        setRating(userReview.rating)
-        setComment(userReview.comment || "")
+    if (reviewsData?.data && customerId && orderDetailId) {
+      const reviewForThisOrder = reviewsData.data.find(
+        (review) => 
+          review.customer?.id === customerId && 
+          review.productId === productId &&
+          review.orderDetailId === orderDetailId
+      );
+      if (reviewForThisOrder) {
+        setHasReviewed(true);
+        setRating(reviewForThisOrder.rating);
+        setComment(reviewForThisOrder.comment || "");
+        setReviewImages(reviewForThisOrder.reviewImages || []);
+      } else {
+        setHasReviewed(false);
+        setRating(0);
+        setComment("");
+        setReviewImages([]);
       }
     }
-  }, [reviewsData, customerId, productId])
+  }, [reviewsData, customerId, productId, orderDetailId])
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    const validFiles = files.filter((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error(`${file.name} không phải là file ảnh`)
+        return false
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} vượt quá 5MB`)
+        return false
+      }
+      return true
+    })
+
+    if (selectedImages.length + validFiles.length > 5) {
+      toast.error("Tối đa 5 ảnh")
+      return
+    }
+
+    const newFiles = [...selectedImages, ...validFiles]
+    setSelectedImages(newFiles)
+
+    const newPreviews = validFiles.map((file) => URL.createObjectURL(file))
+    setImagePreviews([...imagePreviews, ...newPreviews])
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  const handleRemoveImage = (index: number) => {
+    const newImages = selectedImages.filter((_, i) => i !== index)
+    const newPreviews = imagePreviews.filter((_, i) => i !== index)
+    setSelectedImages(newImages)
+    setImagePreviews(newPreviews)
+    if (imagePreviews[index]) {
+      URL.revokeObjectURL(imagePreviews[index])
+    }
+  }
 
   const handleSubmit = async () => {
     if (hasReviewed) {
@@ -63,14 +122,27 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
     }
 
     try {
+      let imageUrls: string[] = []
+      if (selectedImages.length > 0) {
+        const uploadResult = await uploadImages({
+          files: selectedImages,
+          folder: "reviews",
+        }).unwrap()
+        imageUrls = uploadResult.data || []
+      }
+
       await createReview({
         productId,
         rating,
         comment: comment.trim() || undefined,
         orderDetailId,
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       }).unwrap()
       toast.success("Đánh giá thành công")
       setHasReviewed(true)
+      setSelectedImages([])
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url))
+      setImagePreviews([])
       refetch()
     } catch (error: any) {
       toast.error(error?.data?.message || "Có lỗi xảy ra khi đánh giá")
@@ -116,8 +188,47 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
                   className="resize-none"
                 />
               </div>
-              <Button onClick={handleSubmit} disabled={isLoading || rating === 0} size="sm" className="w-full sm:w-auto">
-                {isLoading ? "Đang gửi..." : "Gửi đánh giá"}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Thêm ảnh (tùy chọn, tối đa 5 ảnh)</label>
+                <div className="flex flex-wrap gap-2">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group w-20 h-20">
+                      <Image
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        fill
+                        className="rounded-lg object-cover border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {imagePreviews.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:border-blue-500 transition-colors"
+                    >
+                      <ImageIcon className="w-6 h-6 text-gray-400" />
+                    </button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+              <Button onClick={handleSubmit} disabled={isLoading || isUploading || rating === 0} size="sm" className="w-full sm:w-auto">
+                {isLoading || isUploading ? "Đang gửi..." : "Gửi đánh giá"}
               </Button>
             </div>
           ) : (
@@ -129,8 +240,30 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
               {comment && (
                 <p className="text-sm text-gray-700 mt-2">{comment}</p>
               )}
+              {reviewImages.length > 0 && (
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  {reviewImages.map((img, index) => (
+                    <div
+                      key={img.id}
+                      className="relative w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        setPreviewImages(reviewImages)
+                        setPreviewIndex(index)
+                        setPreviewModalOpen(true)
+                      }}
+                    >
+                      <Image
+                        src={img.imageUrl}
+                        alt="Review image"
+                        fill
+                        className="rounded object-cover border border-gray-200"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
               <p className="text-xs text-gray-500 mt-2">
-                Bạn chỉ có thể đánh giá mỗi sản phẩm một lần
+                Bạn chỉ có thể đánh giá mỗi sản phẩm một lần  trong đơn hàng này
               </p>
             </div>
           )}
@@ -159,15 +292,23 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
                   )}
                   {review.reviewImages && review.reviewImages.length > 0 && (
                     <div className="flex gap-2 mt-2 flex-wrap">
-                      {review.reviewImages.map((img) => (
-                        <Image
+                      {review.reviewImages.map((img, index) => (
+                        <div
                           key={img.id}
-                          src={img.imageUrl}
-                          alt="Review image"
-                          width={60}
-                          height={60}
-                          className="rounded object-cover border border-gray-200"
-                        />
+                          className="relative w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => {
+                            setPreviewImages(review.reviewImages)
+                            setPreviewIndex(index)
+                            setPreviewModalOpen(true)
+                          }}
+                        >
+                          <Image
+                            src={img.imageUrl}
+                            alt="Review image"
+                            fill
+                            className="rounded object-cover border border-gray-200"
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -177,6 +318,13 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
           </div>
         </div>
       )}
+
+      <ImagePreviewModal
+        open={previewModalOpen}
+        onOpenChange={setPreviewModalOpen}
+        images={previewImages}
+        initialIndex={previewIndex}
+      />
     </Card>
   )
 }

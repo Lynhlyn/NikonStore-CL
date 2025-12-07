@@ -16,6 +16,7 @@ import {
   Star,
   Package,
   AlertCircle,
+  Image as ImageIcon,
 } from "lucide-react";
 import Loader from "@/components/common/Loader";
 import { useFetchProductByIdQuery } from "@/lib/service/modules/productService";
@@ -36,6 +37,14 @@ import { toast } from "sonner";
 import BreadcrumbNavigation from "@/components/product/BreadcrumbNavigation";
 import RelatedProductsSection from "@/components/product/RelatedProductsSection";
 import { Button } from "@/core/shadcn/components/ui/button";
+import { ImagePreviewModal } from "@/common/components/review/ImagePreviewModal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/core/shadcn/components/ui/select";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -47,6 +56,11 @@ export default function ProductDetailPage() {
     useState<ProductDetailVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [thumbnailStartIndex, setThumbnailStartIndex] = useState(0);
+  const [reviewFilter, setReviewFilter] = useState<"all" | "withImages" | "rating5" | "rating4" | "rating3" | "rating2" | "rating1">("all");
+  const [reviewSort, setReviewSort] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewImages, setPreviewImages] = useState<{ id: number; imageUrl: string }[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
 
   const {
     data: productData,
@@ -61,7 +75,7 @@ export default function ProductDetailPage() {
     productId,
     status: 1,
     page: 0,
-    size: 5,
+    size: 100,
   });
 
   const cartItems = useSelector((state: RootState) => {
@@ -157,6 +171,45 @@ export default function ProductDetailPage() {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + "₫";
   };
+
+  const reviewStats = useMemo(() => {
+    if (!reviewsData?.data) return { all: 0, withImages: 0, rating5: 0, rating4: 0, rating3: 0, rating2: 0, rating1: 0 };
+    
+    return {
+      all: reviewsData.data.length,
+      withImages: reviewsData.data.filter((r) => r.reviewImages && r.reviewImages.length > 0).length,
+      rating5: reviewsData.data.filter((r) => r.rating === 5).length,
+      rating4: reviewsData.data.filter((r) => r.rating === 4).length,
+      rating3: reviewsData.data.filter((r) => r.rating === 3).length,
+      rating2: reviewsData.data.filter((r) => r.rating === 2).length,
+      rating1: reviewsData.data.filter((r) => r.rating === 1).length,
+    };
+  }, [reviewsData?.data]);
+
+  const filteredAndSortedReviews = useMemo(() => {
+    if (!reviewsData?.data) return [];
+    
+    let filtered = [...reviewsData.data];
+    
+    if (reviewFilter === "withImages") {
+      filtered = filtered.filter((r) => r.reviewImages && r.reviewImages.length > 0);
+    } else if (reviewFilter.startsWith("rating")) {
+      const rating = parseInt(reviewFilter.replace("rating", ""));
+      filtered = filtered.filter((r) => r.rating === rating);
+    }
+    
+    if (reviewSort === "newest") {
+      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (reviewSort === "oldest") {
+      filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    } else if (reviewSort === "highest") {
+      filtered.sort((a, b) => b.rating - a.rating);
+    } else if (reviewSort === "lowest") {
+      filtered.sort((a, b) => a.rating - b.rating);
+    }
+    
+    return filtered;
+  }, [reviewsData?.data, reviewFilter, reviewSort]);
 
   const handleColorChange = (colorId: number) => {
     const newVariant = productData?.data?.variants.find(
@@ -768,11 +821,116 @@ export default function ProductDetailPage() {
 
             {reviewsData?.data && reviewsData.data.length > 0 && (
               <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">
-                  Đánh giá sản phẩm
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Đánh giá sản phẩm
+                  </h3>
+                  <Select value={reviewSort} onValueChange={(value: any) => setReviewSort(value)}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Sắp xếp" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Mới nhất</SelectItem>
+                      <SelectItem value="oldest">Cũ nhất</SelectItem>
+                      <SelectItem value="highest">Đánh giá cao</SelectItem>
+                      <SelectItem value="lowest">Đánh giá thấp</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b border-gray-200">
+                  <button
+                    onClick={() => setReviewFilter("all")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      reviewFilter === "all"
+                        ? "bg-[#FF6B00] text-white border border-[#FF6B00]"
+                        : "bg-white text-gray-700 border border-gray-300 hover:border-[#FF6B00] hover:text-[#FF6B00]"
+                    }`}
+                  >
+                    Tất cả ({reviewStats.all})
+                  </button>
+                  <button
+                    onClick={() => setReviewFilter("rating5")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      reviewFilter === "rating5"
+                        ? "bg-[#FF6B00] text-white border border-[#FF6B00]"
+                        : "bg-white text-gray-700 border border-gray-300 hover:border-[#FF6B00] hover:text-[#FF6B00]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      5 sao ({reviewStats.rating5})
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setReviewFilter("rating4")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      reviewFilter === "rating4"
+                        ? "bg-[#FF6B00] text-white border border-[#FF6B00]"
+                        : "bg-white text-gray-700 border border-gray-300 hover:border-[#FF6B00] hover:text-[#FF6B00]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      4 sao ({reviewStats.rating4})
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setReviewFilter("rating3")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      reviewFilter === "rating3"
+                        ? "bg-[#FF6B00] text-white border border-[#FF6B00]"
+                        : "bg-white text-gray-700 border border-gray-300 hover:border-[#FF6B00] hover:text-[#FF6B00]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      3 sao ({reviewStats.rating3})
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setReviewFilter("rating2")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      reviewFilter === "rating2"
+                        ? "bg-[#FF6B00] text-white border border-[#FF6B00]"
+                        : "bg-white text-gray-700 border border-gray-300 hover:border-[#FF6B00] hover:text-[#FF6B00]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      2 sao ({reviewStats.rating2})
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setReviewFilter("rating1")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      reviewFilter === "rating1"
+                        ? "bg-[#FF6B00] text-white border border-[#FF6B00]"
+                        : "bg-white text-gray-700 border border-gray-300 hover:border-[#FF6B00] hover:text-[#FF6B00]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      1 sao ({reviewStats.rating1})
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setReviewFilter("withImages")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      reviewFilter === "withImages"
+                        ? "bg-[#FF6B00] text-white border border-[#FF6B00]"
+                        : "bg-white text-gray-700 border border-gray-300 hover:border-[#FF6B00] hover:text-[#FF6B00]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <ImageIcon className="w-4 h-4" />
+                      Có ảnh ({reviewStats.withImages})
+                    </span>
+                  </button>
+                </div>
+                {filteredAndSortedReviews.length > 0 ? (
                 <div className="space-y-4">
-                  {reviewsData.data.map((review) => (
+                  {filteredAndSortedReviews.map((review) => (
                     <div
                       key={review.id}
                       className="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0"
@@ -811,10 +969,15 @@ export default function ProductDetailPage() {
                           )}
                           {review.reviewImages && review.reviewImages.length > 0 && (
                             <div className="flex gap-2 mt-3">
-                              {review.reviewImages.map((img) => (
+                              {review.reviewImages.map((img, index) => (
                                 <div
                                   key={img.id}
-                                  className="w-20 h-20 relative rounded-lg overflow-hidden border border-gray-200"
+                                  className="w-20 h-20 relative rounded-lg overflow-hidden border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => {
+                                    setPreviewImages(review.reviewImages)
+                                    setPreviewIndex(index)
+                                    setPreviewModalOpen(true)
+                                  }}
                                 >
                                   <Image
                                     src={img.imageUrl}
@@ -831,7 +994,12 @@ export default function ProductDetailPage() {
                     </div>
                   ))}
                 </div>
-                {reviewsData.pagination.totalElements > 5 && (
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>Không có đánh giá nào phù hợp với bộ lọc</p>
+                  </div>
+                )}
+                {reviewsData.pagination.totalElements > 100 && (
                   <div className="mt-4 text-center">
                     <button
                       onClick={() => {
@@ -845,6 +1013,13 @@ export default function ProductDetailPage() {
                 )}
               </div>
             )}
+
+            <ImagePreviewModal
+              open={previewModalOpen}
+              onOpenChange={setPreviewModalOpen}
+              images={previewImages}
+              initialIndex={previewIndex}
+            />
           </div>
         </div>
       </div>

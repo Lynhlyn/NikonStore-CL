@@ -295,10 +295,12 @@ export default function OrderTracking() {
                       <span className="text-sm sm:text-base">Phí vận chuyển:</span>
                       <span className="text-sm sm:text-base font-medium">{shippingFee.toLocaleString("vi-VN")}₫</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm sm:text-base">Giảm giá:</span>
-                      <span className="text-sm sm:text-base font-medium text-red-600">-{discount.toLocaleString("vi-VN")}₫</span>
-                    </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm sm:text-base">Giảm giá:</span>
+                        <span className="text-sm sm:text-base font-medium text-red-600">-{discount.toLocaleString("vi-VN")}₫</span>
+                      </div>
+                    )}
                     <Separator />
                     <div className="flex justify-between items-center text-base sm:text-lg font-semibold pt-1">
                       <span>Tổng cộng:</span>

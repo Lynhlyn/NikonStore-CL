@@ -7,15 +7,19 @@ import { Card } from "@/core/shadcn/components/ui/card"
 import { Badge } from "@/core/shadcn/components/ui/badge"
 import { Separator } from "@/core/shadcn/components/ui/separator"
 import Image from "next/image"
-import { useGetOrderByIdQuery, useUpdateOrderStatusMutation } from "@/lib/service/modules/orderService"
+import { useGetOrderByIdQuery, useUpdateOrderStatusMutation, useCancelOrderMutation } from "@/lib/service/modules/orderService"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { getPaymentMethodLabel } from "@/common/utils/paymentMethodMapper"
-import { getOrderStatusLabel, getOrderStatusColors } from "@/common/utils/orderStatusMapper"
+import { getOrderStatusLabel, getOrderStatusColors, OrderStatus } from "@/common/utils/orderStatusMapper"
 import { ProductReview } from "./ProductReview"
 import { QuickReviewModal } from "./QuickReviewModal"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/lib/hooks/useAuth"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/src/components/ui/dialog"
+import { RadioGroup, RadioGroupItem } from "@/core/shadcn/components/ui/radio-group"
+import { Textarea } from "@/core/shadcn/components/ui/textarea"
 
 interface OrderDetailProps {
   orderId: number;
@@ -24,11 +28,26 @@ interface OrderDetailProps {
 export function OrderDetail({ orderId }: OrderDetailProps) {
   const router = useRouter();
   const [showQuickReviewModal, setShowQuickReviewModal] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [cancelledOrderInfo, setCancelledOrderInfo] = useState<any>(null);
+  const { customerId } = useAuth();
 
   const { data: order, isLoading, refetch } = useGetOrderByIdQuery(orderId, {
     skip: !orderId,
   });
   const [updateOrderStatus, { isLoading: isUpdatingStatus }] = useUpdateOrderStatusMutation();
+  const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
+
+  const cancelReasons = [
+    "Tôi đổi ý, không muốn mua nữa",
+    "Tôi đặt nhầm sản phẩm / sai số lượng / sai màu / sai size",
+    "Tìm được sản phẩm giá tốt hơn ở nơi khác",
+    "Nhập sai địa chỉ nhận hàng",
+    "Khác",
+  ];
 
   if (isLoading) {
     return (
@@ -64,7 +83,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
     try {
       await updateOrderStatus({
         orderId,
-        afterStatus: 6,
+        afterStatus: OrderStatus.COMPLETED,
       }).unwrap();
       toast.success("Đã cập nhật trạng thái đơn hàng thành công");
       refetch();
@@ -72,6 +91,65 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
       toast.error(error?.data?.message || "Có lỗi xảy ra khi cập nhật trạng thái");
     }
   };
+
+  const handleCloseCancelModal = () => {
+    setIsCancelModalOpen(false);
+    setCancelReason("");
+    setCustomReason("");
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!customerId) {
+      toast.error("Không tìm thấy thông tin khách hàng");
+      return;
+    }
+
+    if (!cancelReason) {
+      toast.error("Vui lòng chọn lý do hủy đơn hàng");
+      return;
+    }
+
+    if (cancelReason === "Khác" && !customReason.trim()) {
+      toast.error("Vui lòng nhập lý do cụ thể");
+      return;
+    }
+
+    if (order && order.orderStatus !== OrderStatus.PENDING_CONFIRMATION && 
+        order.orderStatus !== OrderStatus.CONFIRMED && 
+        order.orderStatus !== OrderStatus.PENDING_PAYMENT) {
+      toast.error("Chỉ có thể hủy đơn ở trạng thái Chờ xác nhận, Đã xác nhận hoặc Chờ thanh toán!");
+      handleCloseCancelModal();
+      return;
+    }
+
+    try {
+      const finalReason = cancelReason === "Khác" ? customReason : cancelReason;
+      await cancelOrder({
+        orderId,
+        customerId,
+        reason: finalReason,
+        status: OrderStatus.CANCELLED,
+      }).unwrap();
+      
+      setCancelledOrderInfo({
+        trackingNumber: order?.trackingNumber,
+        orderDate: order?.orderDate,
+        totalAmount: order?.totalAmount || 0,
+        shippingFee: order?.shippingFee || 0,
+        discount: order?.discount || 0,
+        reason: finalReason
+      });
+      setIsSuccessModalOpen(true);
+      handleCloseCancelModal();
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Hủy đơn hàng thất bại!");
+    }
+  };
+
+  const canCancelOrder = order?.orderStatus === OrderStatus.PENDING_CONFIRMATION ||
+    order?.orderStatus === OrderStatus.CONFIRMED ||
+    order?.orderStatus === OrderStatus.PENDING_PAYMENT;
 
   const customer = {
     name: order.customerName,
@@ -204,10 +282,12 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
                 <span className="text-sm sm:text-base">Phí vận chuyển:</span>
                 <span className="text-sm sm:text-base font-medium">{order.shippingFee?.toLocaleString("vi-VN")}₫</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm sm:text-base">Giảm giá:</span>
-                <span className="text-sm sm:text-base font-medium text-red-600">-{order.discount?.toLocaleString("vi-VN")}₫</span>
-              </div>
+              {(order.discount && order.discount > 0) && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm sm:text-base">Giảm giá:</span>
+                  <span className="text-sm sm:text-base font-medium text-red-600">-{order.discount?.toLocaleString("vi-VN")}₫</span>
+                </div>
+              )}
               <Separator />
               <div className="flex justify-between items-center text-base sm:text-lg font-semibold pt-1">
                 <span>Tổng cộng:</span>
@@ -223,8 +303,8 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
                   {getStatusBadge(order.orderStatus)}
                 </div>
               </div>
-              {order.orderStatus === 5 && (
-                <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t space-y-2">
+                {order.orderStatus === OrderStatus.SHIPPING && (
                   <Button
                     onClick={handleReceivedOrder}
                     disabled={isUpdatingStatus}
@@ -234,8 +314,19 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
                     {isUpdatingStatus && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                     Đã nhận hàng
                   </Button>
-                </div>
-              )}
+                )}
+                {canCancelOrder && (
+                  <Button
+                    onClick={() => setIsCancelModalOpen(true)}
+                    disabled={isCancelling}
+                    variant="destructive"
+                    className="w-full"
+                    size="sm"
+                  >
+                    Hủy đơn hàng
+                  </Button>
+                )}
+              </div>
             </div>
           </Card>
         </div>
@@ -302,7 +393,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
           </div>
         </Card>
 
-        {order.orderStatus === 6 && (
+        {order.orderStatus === OrderStatus.COMPLETED && (
           <Card className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
               <h2 className="text-lg sm:text-xl font-semibold">Đánh giá sản phẩm</h2>
@@ -342,6 +433,98 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
             refetch();
           }}
         />
+
+        <Dialog open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Chọn lý do hủy đơn hàng</DialogTitle>
+            </DialogHeader>
+            <RadioGroup value={cancelReason} onValueChange={setCancelReason} className="space-y-2">
+              {cancelReasons.map((reason) => (
+                <div key={reason} className="flex items-center space-x-2">
+                  <RadioGroupItem value={reason} id={reason} />
+                  <label htmlFor={reason} className="text-sm font-medium cursor-pointer">{reason}</label>
+                </div>
+              ))}
+            </RadioGroup>
+            {cancelReason === "Khác" && (
+              <Textarea
+                className="mt-2"
+                placeholder="Nhập lý do cụ thể..."
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                rows={3}
+              />
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseCancelModal}>Hủy bỏ</Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmCancel}
+                disabled={!cancelReason || (cancelReason === "Khác" && !customReason.trim()) || isCancelling}
+              >
+                {isCancelling && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Xác nhận hủy đơn
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <DialogTitle className="text-green-800">Hủy đơn hàng thành công!</DialogTitle>
+              </div>
+            </DialogHeader>
+            {cancelledOrderInfo && (
+              <div className="space-y-4">
+                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Mã đơn hàng:</span>
+                      <span className="font-semibold">{cancelledOrderInfo.trackingNumber}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Ngày đặt:</span>
+                      <span>{format(new Date(cancelledOrderInfo.orderDate), "dd/MM/yyyy")}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Tổng tiền:</span>
+                      <span className="font-semibold text-green-600">
+                        {((cancelledOrderInfo.totalAmount + cancelledOrderInfo.shippingFee - cancelledOrderInfo.discount) || 0).toLocaleString("vi-VN")}đ
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Lý do hủy:</span>
+                      <span className="text-sm text-gray-600 max-w-[200px] text-right">{cancelledOrderInfo.reason}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-600 bg-blue-50 rounded-lg p-3 border border-blue-200">
+                  <p className="font-medium text-blue-800 mb-1">Thông tin bổ sung:</p>
+                  <ul className="space-y-1 text-blue-700">
+                    <li>• Đơn hàng đã được hủy thành công</li>
+                    <li>• Bạn có thể đặt lại đơn hàng mới bất cứ lúc nào</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button 
+                onClick={() => setIsSuccessModalOpen(false)}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                Đã hiểu
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
