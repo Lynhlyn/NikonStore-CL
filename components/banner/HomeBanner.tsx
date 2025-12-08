@@ -58,25 +58,28 @@ export default function HomeBanner({
 
   return (
     <section className="w-full relative">
-      <div className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
+      <div className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden bg-gray-100">
         {banners.map((banner, index) => (
           <Link
             key={banner.id}
             href={banner.url || "#"}
-            className={`absolute inset-0 transition-opacity duration-500 ${
+            className={`absolute inset-0 transition-opacity duration-500 flex items-center justify-center ${
               index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
             }`}
           >
-            <Image
-              src={banner.imageUrl}
-              alt={banner.name || "Banner"}
-              fill
-              className="object-cover"
-              priority={index === 0}
-            />
+            <div className="relative w-full h-full flex items-center justify-center">
+              <Image
+                src={banner.imageUrl}
+                alt={banner.name || "Banner"}
+                fill
+                className="object-contain"
+                priority={index === 0}
+                sizes="100vw"
+              />
+            </div>
             {/* Text Overlay */}
             {(banner.name || banner.description) && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-20">
+              <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                 <div className="text-center px-4 md:px-8 max-w-4xl">
                   {banner.name && (
                     <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4 drop-shadow-lg">

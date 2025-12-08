@@ -41,18 +41,18 @@ export default function LatestFAQsSection() {
           </Link>
         </div>
 
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <Accordion type="single" collapsible className="w-full bg-white rounded-lg shadow-sm">
             {faqs.slice(0, 5).map((faq) => (
               <AccordionItem key={faq.id} value={`faq-${faq.id}`} className="border-b last:border-b-0">
                 <AccordionTrigger className="text-left px-6 py-4 hover:bg-gray-50">
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 w-full pr-4">
                     <HelpCircle className="h-5 w-5 text-[#FF6B00] mt-0.5 flex-shrink-0" />
-                    <span className="font-medium">{faq.question}</span>
+                    <span className="font-medium flex-1">{faq.question}</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-6 pb-4">
-                  <div className="prose max-w-none text-gray-700 prose-p:text-gray-700 prose-a:text-[#FF6B00] prose-a:no-underline hover:prose-a:underline">
+                  <div className="prose max-w-none w-full text-gray-700 prose-p:text-gray-700 prose-a:text-[#FF6B00] prose-a:no-underline hover:prose-a:underline">
                     {parse(faq.answer)}
                   </div>
                 </AccordionContent>

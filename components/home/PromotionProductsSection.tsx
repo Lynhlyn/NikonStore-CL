@@ -4,8 +4,28 @@ import ProductList from "@/components/product/ProductList"
 import Link from "next/link"
 import { ArrowRight, Tag } from "lucide-react"
 import { Button } from "@/core/shadcn/components/ui/button"
+import { useFetchProductsQuery } from "@/lib/service/modules/productService"
+import Loader from "@/components/common/Loader"
 
 export default function PromotionProductsSection() {
+  const { data: promotionData, isLoading } = useFetchProductsQuery({
+    page: 0,
+    size: 1,
+    hasPromotion: true,
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader />
+      </div>
+    )
+  }
+
+  if (!promotionData?.data || promotionData.data.length === 0) {
+    return null
+  }
+
   return (
     <section className="py-12 bg-gradient-to-br from-[#FF6B00]/5 to-[#FF6B00]/10">
       <div className="container mx-auto px-4">
