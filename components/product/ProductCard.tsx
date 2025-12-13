@@ -210,7 +210,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <div className="relative w-full h-full">
           <Link href={`/products/${product.productId}`} className="block w-full h-full">
             <Image
-              src={currentVariant.thumbnailImage || "/placeholder.svg"}
+              src={currentVariant.thumbnailImage || "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png"}
               alt={`${product.productName} - ${currentVariant.color?.name || ''}`}
               fill
               className={cn(

@@ -171,7 +171,7 @@ export default function OrderTracking() {
             sku: item.sku,
             quantity: item.quantity,
             price: item.finalPrice || item.price || 0,
-            image: item.imageUrl || item.productDetail?.imageUrl || '/placeholder.svg',
+            image: item.imageUrl || item.productDetail?.imageUrl || 'https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png',
             color: item.colorName || item.color || item.productColor || item.variantColor || '-',
             brand: item.brandName || item.brand || '-',
             size: item.dimensions || item.size || item.productSize || '-',

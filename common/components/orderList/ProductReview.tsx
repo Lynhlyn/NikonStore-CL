@@ -40,6 +40,9 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
   })
 
   const [reviewImages, setReviewImages] = useState<{ id: number; imageUrl: string }[]>([])
+  const [previewModalOpen, setPreviewModalOpen] = useState(false)
+  const [previewImages, setPreviewImages] = useState<{ id: number; imageUrl: string }[]>([])
+  const [previewIndex, setPreviewIndex] = useState(0)
 
   useEffect(() => {
     if (reviewsData?.data && customerId && orderDetailId) {
@@ -156,11 +159,15 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
     <Card className="p-5 border-l-4 border-l-blue-500">
       <div className="flex items-start gap-4 mb-4">
         <Image
-          src={productImage || "/placeholder.svg"}
+          src={productImage || "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png"}
           alt={productName}
           width={80}
           height={80}
           className="rounded-lg object-cover border border-gray-200"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png";
+          }}
         />
         <div className="flex-1">
           <div className="flex items-center justify-between mb-3">
@@ -242,24 +249,32 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
               )}
               {reviewImages.length > 0 && (
                 <div className="flex gap-2 mt-3 flex-wrap">
-                  {reviewImages.map((img, index) => (
-                    <div
-                      key={img.id}
-                      className="relative w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => {
-                        setPreviewImages(reviewImages)
-                        setPreviewIndex(index)
-                        setPreviewModalOpen(true)
-                      }}
-                    >
-                      <Image
-                        src={img.imageUrl}
-                        alt="Review image"
-                        fill
-                        className="rounded object-cover border border-gray-200"
-                      />
-                    </div>
-                  ))}
+                  {reviewImages
+                    .filter((img) => img?.imageUrl)
+                    .map((img, index) => (
+                      <div
+                        key={img.id}
+                        className="relative w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => {
+                          const validImages = reviewImages.filter((i) => i?.imageUrl)
+                          const validIndex = validImages.findIndex((i) => i.id === img.id)
+                          setPreviewImages(validImages)
+                          setPreviewIndex(validIndex >= 0 ? validIndex : 0)
+                          setPreviewModalOpen(true)
+                        }}
+                      >
+                        <Image
+                          src={img.imageUrl || "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png"}
+                          alt="Review image"
+                          fill
+                          className="rounded object-cover border border-gray-200"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png";
+                          }}
+                        />
+                      </div>
+                    ))}
                 </div>
               )}
               <p className="text-xs text-gray-500 mt-2">
@@ -292,24 +307,34 @@ export function ProductReview({ productId, orderDetailId, productName, productIm
                   )}
                   {review.reviewImages && review.reviewImages.length > 0 && (
                     <div className="flex gap-2 mt-2 flex-wrap">
-                      {review.reviewImages.map((img, index) => (
-                        <div
-                          key={img.id}
-                          className="relative w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => {
-                            setPreviewImages(review.reviewImages)
-                            setPreviewIndex(index)
-                            setPreviewModalOpen(true)
-                          }}
-                        >
-                          <Image
-                            src={img.imageUrl}
-                            alt="Review image"
-                            fill
-                            className="rounded object-cover border border-gray-200"
-                          />
-                        </div>
-                      ))}
+                      {review.reviewImages
+                        .filter((img) => img?.imageUrl)
+                        .map((img, index) => {
+                          const validImages = review.reviewImages.filter((i) => i?.imageUrl)
+                          const validIndex = validImages.findIndex((i) => i.id === img.id)
+                          return (
+                            <div
+                              key={img.id}
+                              className="relative w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => {
+                                setPreviewImages(validImages)
+                                setPreviewIndex(validIndex >= 0 ? validIndex : 0)
+                                setPreviewModalOpen(true)
+                              }}
+                            >
+                              <Image
+                                src={img.imageUrl || "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png"}
+                                alt="Review image"
+                                fill
+                                className="rounded object-cover border border-gray-200"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png";
+                                }}
+                              />
+                            </div>
+                          )
+                        })}
                     </div>
                   )}
                 </div>

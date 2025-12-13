@@ -74,7 +74,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
     sku: item.sku,
     quantity: item.quantity,
     price: item.finalPrice || item.price || 0,
-    image: item.imageUrl || item.image || "/placeholder.svg",
+    image: item.imageUrl || item.image || "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png",
     color: item.colorName || item.color || item.productColor || item.variantColor || "-",
     brand: item.brandName || item.brand || "-",
     size: item.dimensions || item.size || item.productSize || "-",
@@ -211,11 +211,15 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
               >
                 <div className="lg:col-span-6 flex items-start sm:items-center gap-3 sm:gap-4">
                   <Image
-                    src={product.image}
+                    src={product.image || "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png"}
                     alt={product.name}
                     width={80}
                     height={80}
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png";
+                    }}
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 line-clamp-2">{product.name}</h3>

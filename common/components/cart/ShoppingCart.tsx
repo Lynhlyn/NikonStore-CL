@@ -132,7 +132,7 @@ const CartItemComponent = React.memo(({
         </Checkbox.Root>
         <div className="w-16 h-16 bg-gray-200 rounded-lg shrink-0 flex items-center justify-center overflow-hidden">
           <img 
-            src={item.imageUrl || '/placeholder.jpg'} 
+            src={item.imageUrl || 'https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png'} 
             alt={item.productName} 
             className="w-full h-full object-cover rounded-lg" 
           />

@@ -383,7 +383,7 @@ export default function ProductDetailPage() {
               <Image
                 src={
                   selectedVariant?.thumbnailImage ||
-                  "/placeholder.svg?height=500&width=500"
+                  "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png?height=500&width=500"
                 }
                 alt={product.name}
                 fill
@@ -443,7 +443,7 @@ export default function ProductDetailPage() {
                         <Image
                           src={
                             imageData.image ||
-                            "/placeholder.svg?height=80&width=80"
+                            "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png?height=80&width=80"
                           }
                           alt={`${product.name} - ${imageData.colorName}`}
                           fill

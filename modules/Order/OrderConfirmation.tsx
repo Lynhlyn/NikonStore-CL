@@ -516,7 +516,7 @@ export default function OrderConfirmation({ orderData: initialOrderData }: Order
                   >
                     <div className="col-span-9 flex items-center gap-4">
                       <Image
-                        src={item.imageUrl || "/placeholder.svg"}
+                        src={item.imageUrl || "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png"}
                         alt={item.productName}
                         width={60}
                         height={60}

@@ -149,7 +149,7 @@ function SearchBar() {
                                     >
                                         <div className="relative w-16 h-16 shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                                             <Image
-                                                src={primaryVariant.thumbnailImage || "/placeholder.svg"}
+                                                src={primaryVariant.thumbnailImage || "https://cdn-app.sealsubscriptions.com/shopify/public/img/promo/no-image-placeholder.png"}
                                                 alt={product.productName}
                                                 fill
                                                 className="object-cover group-hover:scale-110 transition-transform duration-300"
