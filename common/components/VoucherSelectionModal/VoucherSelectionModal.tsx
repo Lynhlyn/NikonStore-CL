@@ -73,6 +73,7 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasAutoAppliedRef = React.useRef(false);
 
   const { customerId } = useAuth();
 
@@ -119,6 +120,7 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
   React.useEffect(() => {
     if (isOpen) {
       setSelectedVoucher(null);
+      hasAutoAppliedRef.current = false;
       setIsRefreshing(true);
       const fetchVouchers = async () => {
         try {
@@ -186,28 +188,80 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
     }
   };
 
+  const isVoucherValid = useMemo(() => {
+    return (voucher: any) => {
+      if (!voucher || voucher.status !== "ACTIVE") {
+        return false;
+      }
+      const now = new Date();
+      const startDate = new Date(voucher.startDate);
+      const endDate = new Date(voucher.endDate);
+      if (now < startDate || now > endDate) {
+        return false;
+      }
+      if (voucher.minOrderValue && subtotal < voucher.minOrderValue) {
+        return false;
+      }
+      return true;
+    };
+  }, [subtotal]);
+
   const filteredVouchers = useMemo(() => {
-    if (!searchTerm) return vouchers;
-    return vouchers.filter(
-      (voucher) =>
-        voucher.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        voucher.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let result = vouchers;
+    
+    if (searchTerm) {
+      result = result.filter(
+        (voucher) =>
+          voucher.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          voucher.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return result;
   }, [vouchers, searchTerm]);
 
-  const sortedVouchers = useMemo(() => {
-    return [...filteredVouchers].sort((a, b) => {
-      const aValue =
-        a.discountType === "PERCENTAGE"
-          ? a.discountValue * 1000
-          : a.discountValue;
-      const bValue =
-        b.discountType === "PERCENTAGE"
-          ? b.discountValue * 1000
-          : b.discountValue;
-      return bValue - aValue;
+  const vouchersWithDiscount = useMemo(() => {
+    return filteredVouchers.map((voucher) => {
+      const isValid = isVoucherValid(voucher);
+      const actualDiscount = isValid
+        ? calculateVoucherDiscount(voucher, subtotal)
+        : 0;
+      return {
+        voucher,
+        isValid,
+        actualDiscount,
+      };
     });
-  }, [filteredVouchers]);
+  }, [filteredVouchers, subtotal, isVoucherValid]);
+
+  const sortedVouchers = useMemo(() => {
+    return [...vouchersWithDiscount].sort((a, b) => {
+      if (a.isValid && !b.isValid) return -1;
+      if (!a.isValid && b.isValid) return 1;
+      if (!a.isValid && !b.isValid) return 0;
+      return b.actualDiscount - a.actualDiscount;
+    });
+  }, [vouchersWithDiscount]);
+
+  React.useEffect(() => {
+    if (
+      isOpen &&
+      sortedVouchers.length > 0 &&
+      !selectedVoucher &&
+      !hasAutoAppliedRef.current &&
+      !isRefreshing
+    ) {
+      const bestVoucher = sortedVouchers.find((item) => item.isValid);
+      if (bestVoucher) {
+        const discount = calculateVoucherDiscount(bestVoucher.voucher, subtotal);
+        if (discount > 0) {
+          setSelectedVoucher(bestVoucher.voucher);
+          onSelectVoucher(bestVoucher.voucher);
+          hasAutoAppliedRef.current = true;
+        }
+      }
+    }
+  }, [isOpen, sortedVouchers, selectedVoucher, subtotal, onSelectVoucher, isRefreshing]);
 
   const handleSelectVoucher = (voucher: any) => {
     setSelectedVoucher(voucher);
@@ -350,7 +404,8 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
             </div>
           )}
 
-          {sortedVouchers.map((voucher, index) => {
+          {sortedVouchers.map((item, index) => {
+            const { voucher, isValid, actualDiscount } = item;
             const isSelected = selectedVoucher?.id === voucher.id;
             const badgeColor = getDiscountBadgeColor(
               voucher.discountType,
@@ -360,17 +415,36 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
             return (
               <Card
                 key={voucher.id}
-                className={`relative overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] group ${
-                  isSelected
-                    ? "ring-2 ring-green-500 shadow-xl bg-green-50"
-                    : "hover:shadow-lg border-gray-200"
+                className={`relative overflow-hidden transition-all duration-300 group ${
+                  isValid
+                    ? `cursor-pointer hover:shadow-xl hover:scale-[1.02] ${
+                        isSelected
+                          ? "ring-2 ring-green-500 shadow-xl bg-green-50"
+                          : "hover:shadow-lg border-gray-200"
+                      }`
+                    : "opacity-50 cursor-not-allowed border-gray-200 bg-gray-50"
                 }`}
-                onClick={() => handleSelectVoucher(voucher)}
+                onClick={() => {
+                  if (isValid) {
+                    handleSelectVoucher(voucher);
+                  } else {
+                    toast.error(
+                      `Voucher không đủ điều kiện. Đơn hàng tối thiểu: ${voucher.minOrderValue?.toLocaleString("vi-VN")}đ`
+                    );
+                  }
+                }}
               >
-                {index < 2 && (
+                {index < 2 && isValid && (
                   <div className="absolute top-0 right-0 z-10">
                     <div className="bg-gradient-to-l from-red-900 to-red-400 text-white text-xs px-3 py-1 rounded-bl-lg font-bold">
-                      {index === 0 ? "HOT NHẤT" : "ƯU ĐÃI TỐT"}
+                      {index === 0 ? "TỐT NHẤT" : "ƯU ĐÃI TỐT"}
+                    </div>
+                  </div>
+                )}
+                {!isValid && (
+                  <div className="absolute top-0 right-0 z-10">
+                    <div className="bg-gray-500 text-white text-xs px-3 py-1 rounded-bl-lg font-bold">
+                      KHÔNG ĐỦ ĐIỀU KIỆN
                     </div>
                   </div>
                 )}
@@ -434,14 +508,36 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
                         )}
                       </div>
 
-                      <div className="space-y-2 text-sm text-gray-600 mb-4">
+                      <div className="space-y-2 text-sm mb-4">
                         {voucher.minOrderValue > 0 && (
-                          <div className="flex items-center">
-                            <ShoppingCart className="w-4 h-4 mr-2 text-gray-400" />
+                          <div className={`flex items-center ${
+                            isValid && subtotal >= voucher.minOrderValue
+                              ? "text-green-600"
+                              : !isValid
+                              ? "text-red-600"
+                              : "text-gray-600"
+                          }`}>
+                            <ShoppingCart className="w-4 h-4 mr-2" />
                             Đơn tối thiểu:{" "}
                             <span className="font-semibold ml-1">
                               {voucher.minOrderValue.toLocaleString("vi-VN")}đ
                             </span>
+                            {!isValid && subtotal < voucher.minOrderValue && (
+                              <span className="text-xs ml-2 text-red-500">
+                                (Thiếu{" "}
+                                {(
+                                  voucher.minOrderValue - subtotal
+                                ).toLocaleString("vi-VN")}
+                                đ)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {isValid && actualDiscount > 0 && (
+                          <div className="flex items-center text-green-600 font-semibold">
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Tiết kiệm:{" "}
+                            {actualDiscount.toLocaleString("vi-VN")}đ
                           </div>
                         )}
 

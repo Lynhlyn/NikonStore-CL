@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { MapPin, CreditCard, Package, Edit3, Plus, Gift } from 'lucide-react';
@@ -29,6 +29,10 @@ import {
 import { Button } from '@/core/shadcn/components/ui/button';
 import { useCalculateShippingFeeMutation } from '@/lib/service/modules/orderService';
 import VoucherSelectionModal from '@/common/components/VoucherSelectionModal/VoucherSelectionModal';
+import {
+  useFetchAvailableVouchersQuery,
+  useFetchPublicActiveVouchersQuery,
+} from '@/lib/service/modules/voucherService';
 
 interface Step2CustomerInfoProps {
   items: any[];
@@ -71,6 +75,26 @@ export default function Step2CustomerInfo({
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
+  const hasAutoSelectedVoucherRef = useRef(false);
+
+  const {
+    data: publicVouchers = [],
+    isLoading: isPublicVoucherLoading,
+  } = useFetchPublicActiveVouchersQuery(undefined, {
+    skip: !!customerId,
+    refetchOnMountOrArgChange: true,
+  });
+
+  const {
+    data: availableVouchers = [],
+    isLoading: isAvailableVoucherLoading,
+  } = useFetchAvailableVouchersQuery(
+    { customerId: customerId! },
+    {
+      skip: !customerId,
+      refetchOnMountOrArgChange: true,
+    }
+  );
 
   const { data: customerData, isLoading: isCustomerLoading } =
     useFetchCustomerByIdQuery(customerId!, {
@@ -160,6 +184,7 @@ export default function Step2CustomerInfo({
   const onShippingFeeChangeRef = useRef(onShippingFeeChange);
   const prevShippingFeeRef = useRef<number | null>(null);
   const hasLoadedDefaultAddressRef = useRef(false);
+  const hasAutoFilledCustomerInfoRef = useRef(false);
 
   useEffect(() => {
     onShippingFeeChangeRef.current = onShippingFeeChange;
@@ -306,6 +331,24 @@ export default function Step2CustomerInfo({
       loadAddressToForm(addressToLoad);
     }
   }, [customerData?.data, shippingAddresses, provinces.length]);
+
+  useEffect(() => {
+    if (
+      customerId &&
+      customerData?.data &&
+      !useSavedAddress &&
+      !hasAutoFilledCustomerInfoRef.current &&
+      (!formData.recipientName || !formData.recipientEmail || !formData.recipientPhone)
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        recipientName: prev.recipientName || customerData.data.fullName || '',
+        recipientEmail: prev.recipientEmail || customerData.data.email || '',
+        recipientPhone: prev.recipientPhone || customerData.data.phoneNumber || '',
+      }));
+      hasAutoFilledCustomerInfoRef.current = true;
+    }
+  }, [customerId, customerData?.data, useSavedAddress, formData.recipientName, formData.recipientEmail, formData.recipientPhone]);
 
   const loadAddressToForm = (address: ShippingAddress) => {
     if (provinces.length > 0) {
@@ -466,6 +509,22 @@ export default function Step2CustomerInfo({
     return calculateVoucherDiscount(selectedVoucher, subtotal);
   }, [selectedVoucher, subtotal]);
 
+  const isVoucherValid = useCallback((voucher: any) => {
+    if (!voucher || voucher.status !== 'ACTIVE') {
+      return false;
+    }
+    const now = new Date();
+    const startDate = new Date(voucher.startDate);
+    const endDate = new Date(voucher.endDate);
+    if (now < startDate || now > endDate) {
+      return false;
+    }
+    if (voucher.minOrderValue && subtotal < voucher.minOrderValue) {
+      return false;
+    }
+    return true;
+  }, [subtotal]);
+
   useEffect(() => {
     if (selectedVoucher) {
       const discount = calculateVoucherDiscount(selectedVoucher, subtotal);
@@ -482,6 +541,50 @@ export default function Step2CustomerInfo({
       }));
     }
   }, [selectedVoucher, subtotal]);
+
+  useEffect(() => {
+    if (
+      !hasAutoSelectedVoucherRef.current &&
+      subtotal > 0 &&
+      !selectedVoucher &&
+      !isPublicVoucherLoading &&
+      !isAvailableVoucherLoading
+    ) {
+      const vouchers = customerId ? availableVouchers : publicVouchers;
+      
+      if (vouchers.length > 0) {
+        const vouchersWithDiscount = vouchers
+          .map((voucher) => {
+            const isValid = isVoucherValid(voucher);
+            const actualDiscount = isValid
+              ? calculateVoucherDiscount(voucher, subtotal)
+              : 0;
+            return {
+              voucher,
+              isValid,
+              actualDiscount,
+            };
+          })
+          .filter((item) => item.isValid && item.actualDiscount > 0)
+          .sort((a, b) => b.actualDiscount - a.actualDiscount);
+
+        if (vouchersWithDiscount.length > 0) {
+          const bestVoucher = vouchersWithDiscount[0].voucher;
+          setSelectedVoucher(bestVoucher);
+          hasAutoSelectedVoucherRef.current = true;
+        }
+      }
+    }
+  }, [
+    subtotal,
+    selectedVoucher,
+    customerId,
+    availableVouchers,
+    publicVouchers,
+    isPublicVoucherLoading,
+    isAvailableVoucherLoading,
+    isVoucherValid,
+  ]);
 
   const calculateTotal = () => {
     return subtotal + shippingFee - (voucherDiscount || 0);
@@ -600,6 +703,7 @@ export default function Step2CustomerInfo({
                           onClick={() => {
                             setIsEditingAddress(false);
                             setUseSavedAddress(false);
+                            hasAutoFilledCustomerInfoRef.current = false;
                             setFormData((prev) => ({
                               ...prev,
                               recipientName: '',
