@@ -159,6 +159,40 @@ export const orderApi = apiSlice.injectEndpoints({
         params: { trackingNumber, email },
       }),
     }),
+
+    searchOrderHistory: build.query<
+      {
+        data: any[];
+        pagination: any;
+        status: number;
+        message: string;
+      },
+      { trackingNumber: string; page?: number; size?: number }
+    >({
+      query: (params) => {
+        const { trackingNumber, page = 0, size = 100 } = params;
+        const searchParams = new URLSearchParams();
+        searchParams.append('trackingNumber', trackingNumber);
+        searchParams.append('page', page.toString());
+        searchParams.append('size', size.toString());
+        return {
+          url: `/order-history/search?${searchParams.toString()}`,
+          method: 'GET',
+        };
+      },
+      transformResponse: (response: {
+        data: any[];
+        pagination: any;
+        status: number;
+        message: string;
+      }) => ({
+        data: response.data || [],
+        pagination: response.pagination,
+        status: response.status,
+        message: response.message,
+      }),
+      providesTags: ['Order'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -175,6 +209,7 @@ export const {
   useSendOrderVerificationEmailMutation,
   useVerifyOrderEmailMutation,
   useSendTrackingVerificationEmailMutation,
+  useSearchOrderHistoryQuery,
 } = orderApi;
 
 export async function trackingOrder(trackingNumber: string, email: string): Promise<any> {

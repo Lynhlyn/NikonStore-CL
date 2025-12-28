@@ -7,6 +7,9 @@ import {
   ErrorResponse, 
   LoginRequest,
   SessionResponse,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  MessageResponse,
 } from "./type"
 
 const auth = "/auth"
@@ -19,6 +22,9 @@ export const api = {
   validate: `${auth}/validate`,
   getSessions: `${auth}/sessions`,
   revokeSession: `${auth}/sessions`,
+  forgotPassword: `${auth}/forgot-password`,
+  resetPassword: `${auth}/reset-password`,
+  validateResetToken: `${auth}/validate-reset-token`,
 }
 
 export const authApi = apiSlice.injectEndpoints({
@@ -100,6 +106,52 @@ export const authApi = apiSlice.injectEndpoints({
         method: "DELETE",
       }),
     }),
+    forgotPassword: build.mutation<MessageResponse, ForgotPasswordRequest>({
+      query: (body) => ({
+        url: api.forgotPassword,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: { message: string }) => response,
+      transformErrorResponse: (err: ErrorResponse) => {
+        if (err.data?.error) {
+          toast.error(err.data.error, { id: "forgot-password-error" })
+        } else if (err.status === 404) {
+          toast.error("Email không tồn tại trong hệ thống", { id: "forgot-password-error" })
+        } else {
+          toast.error("Có lỗi xảy ra. Vui lòng thử lại!", { id: "forgot-password-error" })
+        }
+        return err
+      },
+    }),
+    resetPassword: build.mutation<MessageResponse, ResetPasswordRequest>({
+      query: (body) => ({
+        url: api.resetPassword,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: { message: string }) => response,
+      transformErrorResponse: (err: ErrorResponse) => {
+        if (err.data?.error) {
+          toast.error(err.data.error, { id: "reset-password-error" })
+        } else if (err.status === 400) {
+          toast.error("Token không hợp lệ hoặc đã hết hạn", { id: "reset-password-error" })
+        } else {
+          toast.error("Đặt lại mật khẩu thất bại. Vui lòng thử lại!", { id: "reset-password-error" })
+        }
+        return err
+      },
+    }),
+    validateResetToken: build.query<MessageResponse, string>({
+      query: (token) => ({
+        url: `${api.validateResetToken}?token=${encodeURIComponent(token)}`,
+        method: "GET",
+      }),
+      transformResponse: (response: { message: string }) => response,
+      transformErrorResponse: (err: ErrorResponse) => {
+        return err
+      },
+    }),
   }),
 })
 
@@ -111,4 +163,7 @@ export const {
   useValidateTokenQuery,
   useGetSessionsQuery,
   useRevokeSessionMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+  useValidateResetTokenQuery,
 } = authApi

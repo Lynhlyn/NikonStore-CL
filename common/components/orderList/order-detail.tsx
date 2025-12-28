@@ -15,6 +15,7 @@ import { getOrderStatusLabel, getOrderStatusColors, OrderStatus } from "@/common
 import { formatNote } from "@/lib/utils"
 import { ProductReview } from "./ProductReview"
 import { QuickReviewModal } from "./QuickReviewModal"
+import { OrderHistoryTimeline } from "./OrderHistoryTimeline"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
@@ -397,6 +398,10 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
             </div>
           </div>
         </Card>
+
+        <div className="mb-4 sm:mb-6">
+          <OrderHistoryTimeline trackingNumber={order.trackingNumber || ''} />
+        </div>
 
         {order.orderStatus === OrderStatus.COMPLETED && (
           <Card className="p-4 sm:p-6">
