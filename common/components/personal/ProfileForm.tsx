@@ -151,6 +151,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       let val = e.target.value.replace(/\D/g, '').slice(0, 10)
       e.target.value = val
     }
+    if (name === 'dateOfBirth') {
+      const selectedDate = value
+      const today = new Date().toISOString().split('T')[0]
+      if (selectedDate > today) {
+        toast.error('Không thể chọn ngày trong tương lai')
+        return
+      }
+    }
     if (name === 'gender') {
       setGender(value)
       const englishGender = genderMapper.toEnglish(value)

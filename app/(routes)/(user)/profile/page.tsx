@@ -53,6 +53,14 @@ const ProfilePage = () => {
 
   const handleUserInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
+    if (name === 'dateOfBirth') {
+      const selectedDate = value
+      const today = new Date().toISOString().split('T')[0]
+      if (selectedDate > today) {
+        toast.error('Không thể chọn ngày trong tương lai')
+        return
+      }
+    }
     setCurrentUser((prev) => {
       if (!prev) return prev
       return {
@@ -213,7 +221,7 @@ const ProfilePage = () => {
       handleClosePasswordDialog()
 
     } catch (error: unknown) {
-      const err = error as { data?: { error?: string; message?: string }; message?: string; status?: number }
+      const err = error as { data?: { data?: Record<string, string>; error?: string; message?: string }; message?: string; status?: number }
       console.error('Password change failed:', err)
       
       let errorMessage = 'Đổi mật khẩu thất bại'

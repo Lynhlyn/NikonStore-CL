@@ -190,7 +190,16 @@ export default function RegisterPage() {
                   id="dateOfBirth"
                   type="date"
                   value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  onChange={(e) => {
+                    const selectedDate = e.target.value
+                    const today = new Date().toISOString().split('T')[0]
+                    if (selectedDate <= today) {
+                      setDateOfBirth(selectedDate)
+                    } else {
+                      toast.error("Không thể chọn ngày trong tương lai")
+                      e.target.value = dateOfBirth
+                    }
+                  }}
                   max={new Date().toISOString().split('T')[0]}
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] focus:border-transparent transition-all duration-200 text-sm"
                 />
