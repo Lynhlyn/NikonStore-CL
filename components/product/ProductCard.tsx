@@ -178,14 +178,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
       ).unwrap()
 
       toast.success("Đã thêm vào giỏ hàng", {
-        description: product.productName,
-        position: "top-right"
+        description: product.productName
       })
     } catch (error: unknown) {
       const err = error as { message?: string }
       toast.error("Có lỗi xảy ra", {
-        description: err?.message || "Không thể thêm sản phẩm vào giỏ hàng",
-        position: "top-right"
+        description: err?.message || "Không thể thêm sản phẩm vào giỏ hàng"
       })
     } finally {
       setIsAddingToCart(false)

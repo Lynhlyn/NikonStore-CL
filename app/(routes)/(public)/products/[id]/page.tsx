@@ -273,8 +273,7 @@ export default function ProductDetailPage() {
         })
       ).unwrap();
       toast.success("Đã thêm vào giỏ hàng", {
-        description: product.name,
-        position: "top-right",
+        description: product.name
       });
     } catch (error: unknown) {
       const err = error as { message?: string };

@@ -18,7 +18,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   
   return (
     <div className="min-h-screen flex flex-col">
-      <Toaster position="top-right" richColors />
+      <Toaster position="bottom-right" richColors />
       <div className={`${isUserRoute ? 'hidden lg:block' : ''} lg:fixed lg:top-0 lg:left-0 lg:right-0 lg:z-40`}>
         <Header />
       </div>
