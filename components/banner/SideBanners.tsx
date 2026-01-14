@@ -27,13 +27,22 @@ export default function SideBanners({ position, className = "" }: SideBannersPro
 
   const sortedBanners = [...banners].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
 
+  const getMaxHeightClass = () => {
+    const count = sortedBanners.length
+    if (count === 1) return 'max-h-[600px]'
+    if (count === 2) return 'max-h-[280px]'
+    if (count === 3) return 'max-h-[180px]'
+    if (count === 4) return 'max-h-[130px]'
+    return 'max-h-[100px]'
+  }
+
   return (
     <aside className={`flex flex-col gap-4 ${className}`}>
       {sortedBanners.map((banner) => (
         <Link
           key={banner.id}
           href={banner.url || "#"}
-          className="block relative w-full aspect-[3/4] rounded-lg overflow-hidden hover:opacity-90 transition-opacity shadow-md hover:shadow-lg"
+          className={`block relative w-full ${getMaxHeightClass()} aspect-[3/4] rounded-lg overflow-hidden hover:opacity-90 transition-opacity shadow-md hover:shadow-lg`}
         >
           <Image
             src={banner.imageUrl}

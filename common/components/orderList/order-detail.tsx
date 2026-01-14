@@ -116,10 +116,8 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
       return;
     }
 
-    if (order && order.orderStatus !== OrderStatus.PENDING_CONFIRMATION && 
-        order.orderStatus !== OrderStatus.CONFIRMED && 
-        order.orderStatus !== OrderStatus.PENDING_PAYMENT) {
-      toast.error("Chỉ có thể hủy đơn ở trạng thái Chờ xác nhận, Đã xác nhận hoặc Chờ thanh toán!");
+    if (order && order.orderStatus !== OrderStatus.PENDING_CONFIRMATION) {
+      toast.error("Chỉ có thể hủy đơn ở trạng thái Chờ xác nhận!");
       handleCloseCancelModal();
       return;
     }
@@ -149,9 +147,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
     }
   };
 
-  const canCancelOrder = order?.orderStatus === OrderStatus.PENDING_CONFIRMATION ||
-    order?.orderStatus === OrderStatus.CONFIRMED ||
-    order?.orderStatus === OrderStatus.PENDING_PAYMENT;
+  const canCancelOrder = order?.orderStatus === OrderStatus.PENDING_CONFIRMATION;
 
   const customer = {
     name: order.customerName,
